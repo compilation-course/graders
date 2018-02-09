@@ -1,0 +1,15 @@
+[package]
+authors = ["Samuel Tardieu <sam@rfc1149.net>"]
+name = "xqueue-to-amqp"
+version = "0.1.0"
+
+[dependencies]
+error-chain = "0.11.0"
+futures = "0.1.18"
+hyper = "0.11.18"
+lapin-futures = "0.10.0"
+serde = "1.0.27"
+serde_derive = "1.0.27"
+serde_json = "1.0.9"
+tokio-core = "0.1.12"
+toml = "0.4.5"

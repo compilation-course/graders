@@ -1,0 +1,29 @@
+image: rfc1149/rose-dev
+
+cache:
+  key: "$CI_BUILD_NAME"
+  paths:
+    - /root/.cargo
+
+.test_template: &cargo_test
+  stage: test
+  script:
+    - rustup install $RUST
+    - cd xqueue-to-amqp
+    - cargo +$RUST test
+
+stable:
+  <<: *cargo_test
+  variables:
+    RUST: stable
+
+beta:
+  <<: *cargo_test
+  variables:
+    RUST: beta
+
+nightly:
+  <<: *cargo_test
+  variables:
+    RUST: nightly
+  allow_failure: true
