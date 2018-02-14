@@ -6,6 +6,8 @@ image: rust
     - rustup install $RUST
     - cd xqueue-to-amqp
     - cargo +$RUST test
+    - cd ../builder
+    - cargo +$RUST test
   cache:
     key: "$CI_BUILD_NAME"
     paths:
