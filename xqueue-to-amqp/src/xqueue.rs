@@ -18,3 +18,27 @@
 //     "grader_payload": "problem_2"
 //    }"
 // }
+
+use futures::{Future, IntoFuture};
+use hyper::{Client, StatusCode};
+use tokio_core::reactor::Handle;
+
+struct XQueue {
+    base_url: String,
+    login: String,
+    password: String,
+}
+
+impl XQueue {
+    fn login(&mut self, handle: &Handle) -> Box<Future<Item = bool, Error = ::errors::Error>> {
+        let client = Client::new(handle);
+        let url = format!("{}/xqueue/login", self.base_url)
+            .parse()
+            .into_future()
+            .map_err(|e| ::errors::Error::from(e));
+        Box::new(
+            url.and_then(move |url| client.get(url).map_err(|e| e.into()))
+                .map(|res| res.status() == StatusCode::Ok),
+        )
+    }
+}
