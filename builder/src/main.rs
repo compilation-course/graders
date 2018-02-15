@@ -8,17 +8,23 @@
 //! (or give a meaningful error message) of the latest command
 //! tried otherwise.
 
+extern crate mktemp;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_yaml;
 #[macro_use]
 extern crate structopt;
+extern crate zip;
 
+mod ziputils;
+
+use mktemp::Temp;
 use std::fs::File;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{exit, Command, Stdio};
 use structopt::StructOpt;
+use ziputils::unzip;
 
 /// Compile the compiler from the given directory, set env
 /// DTIGER environment variable and run the tests using the
@@ -32,6 +38,10 @@ struct Opt {
     #[structopt(name = "llvm lib directory", long = "with-llvm", parse(from_os_str))]
     with_llvm: Option<PathBuf>,
 
+    /// Get source from a zip file
+    #[structopt(name = "zip file", long = "--zip", short = "-z", parse(from_os_str))]
+    zip_file: Option<PathBuf>,
+
     /// Run tests in verbose mode
     #[structopt(short = "v", long = "verbose")]
     verbose: bool,
@@ -40,7 +50,7 @@ struct Opt {
     #[structopt(short = "o", long = "output", parse(from_os_str))]
     output_file: Option<PathBuf>,
 
-    /// Top-level dragon-tiger directory
+    /// Top-level dragon-tiger directory. Zip file will be unzipped in a subdirectory if specified
     #[structopt(name = "compiler directory", parse(from_os_str))]
     src_dir: PathBuf,
 
@@ -86,21 +96,29 @@ fn write_error(opt: &Opt, message: String) {
             explanation: message,
         }).unwrap(),
     );
+    exit(0);
 }
 
 fn main() {
-    let opt = Opt::from_args();
-    let mut dtiger = opt.src_dir.clone();
-    dtiger.push("src");
-    dtiger.push("driver");
-    dtiger.push("dtiger");
+    let mut opt = Opt::from_args();
+    let tmp = Temp::new_dir_in(&opt.src_dir).unwrap();
+    if let Some(ref zip_file) = opt.zip_file {
+        match unzip(&tmp.to_path_buf(), zip_file) {
+            Ok(d) => opt.src_dir = d,
+            Err(e) => {
+                write_error(&opt, format!("cannot extract zip file: {}", e));
+                return;
+            }
+        }
+    }
+    let dtiger = opt.src_dir.join("src/driver/dtiger");
     match build(&opt).and_then(|_| run_test(&opt, &dtiger)) {
         Ok(output) => write_output(&opt, &output),
         Err(s) => write_error(&opt, s),
     }
 }
 
-fn run_test(opt: &Opt, dtiger: &PathBuf) -> Result<String, String> {
+fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, String> {
     let mut output = Command::new(&opt.test_command);
     if opt.verbose {
         output.arg("-v");
