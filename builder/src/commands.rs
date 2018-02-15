@@ -3,7 +3,10 @@ use std::process::{Command, Stdio};
 use super::Opt;
 
 pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, String> {
-    info!("executing {:?} with test source {:?} on executable {:?}", opt.test_command, opt.test_file, dtiger);
+    info!(
+        "executing {:?} with test source {:?} on executable {:?}",
+        opt.test_command, opt.test_file, dtiger
+    );
     let mut output = Command::new(&opt.test_command);
     if opt.verbose {
         output.arg("-v");
@@ -21,7 +24,18 @@ pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, String> {
                 opt.test_command, opt.test_file, e
             )
         })?;
-    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+    if output.status.code() == Some(0) {
+        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+    } else {
+        warn!(
+            "received status code {:?} when running tests",
+            output.status.code()
+        );
+        Err(format!(
+            "fatal error while running tests: {:?}",
+            output.stderr
+        ))
+    }
 }
 
 fn exec(opt: &Opt, command: &str) -> Result<(), String> {
@@ -32,12 +46,17 @@ fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), String> {
     info!("executing {} with args {:?}", command, args);
     let output = Command::new(command)
         .args(args)
-        .current_dir(&opt.src_dir)
+        .current_dir(&opt.src)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .output()
-        .map_err(|e| format!("cannot build program in {:?}: {}", opt.src_dir, e))?;
-    trace!("command {} with args {:?} terminated with status {:?}", command, args, output);
+        .map_err(|e| format!("cannot build program in {:?}: {}", opt.src, e))?;
+    trace!(
+        "command {} with args {:?} terminated with status {:?}",
+        command,
+        args,
+        output
+    );
     if output.status.code() == Some(0) {
         Ok(())
     } else {

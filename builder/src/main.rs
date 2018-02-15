@@ -15,7 +15,7 @@ mod outputs;
 mod ziputils;
 
 use mktemp::Temp;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 use ziputils::unzip;
 
@@ -35,10 +35,6 @@ pub struct Opt {
     #[structopt(name = "llvm lib directory", long = "with-llvm", parse(from_os_str))]
     with_llvm: Option<PathBuf>,
 
-    /// Get source from a zip file or URL
-    #[structopt(name = "zip file", long = "--zip", short = "-z")]
-    zip_file: Option<String>,
-
     /// Run tests in verbose mode
     #[structopt(short = "v", long = "verbose")]
     verbose: bool,
@@ -47,9 +43,9 @@ pub struct Opt {
     #[structopt(short = "o", long = "output", parse(from_os_str))]
     output_file: Option<PathBuf>,
 
-    /// Top-level dragon-tiger directory (and zip work space).
-    #[structopt(name = "compiler directory", parse(from_os_str))]
-    src_dir: PathBuf,
+    /// Compiler source (directory, zip file, or URL of zip file)
+    #[structopt(name = "compiler location")]
+    src: String,
 
     /// Test driver command
     #[structopt(name = "test command", parse(from_os_str))]
@@ -63,18 +59,18 @@ pub struct Opt {
 fn main() {
     env_logger::init();
     let mut opt = Opt::from_args();
-    let tmp = Temp::new_dir_in(&opt.src_dir).unwrap();
-    if let Some(ref zip_file) = opt.zip_file {
-        info!("Unzipping {}", zip_file);
-        match unzip(&tmp.to_path_buf(), zip_file) {
-            Ok(d) => opt.src_dir = d,
+    let tmp = Temp::new_dir().unwrap();
+    if !Path::new(&opt.src).is_dir() {
+        info!("Unzipping {:?}", opt.src);
+        match unzip(&tmp.to_path_buf(), &opt.src) {
+            Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
             Err(e) => {
                 outputs::write_error(&opt, format!("cannot extract zip file: {}", e));
                 return;
             }
         }
     }
-    let dtiger = opt.src_dir.join("src/driver/dtiger");
+    let dtiger = Path::new(&opt.src).join("src/driver/dtiger");
     match commands::build(&opt).and_then(|_| commands::run_test(&opt, &dtiger)) {
         Ok(output) => outputs::write_output(&opt, &output),
         Err(s) => outputs::write_error(&opt, s),
