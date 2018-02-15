@@ -1,13 +1,3 @@
-//! Try the following in order, and stop as soon as it works:
-//!
-//!   - `make`
-//!   - `./configure && make`
-//!   - `./autogen.sh && ./configure && make`
-//!
-//! Exit with success if one command does, mirror the stderr
-//! (or give a meaningful error message) of the latest command
-//! tried otherwise.
-
 extern crate env_logger;
 #[macro_use]
 extern crate log;
@@ -34,6 +24,10 @@ use ziputils::unzip;
 /// given tester as well as the given configuration file.
 ///
 /// It outputs a YAML file with the result.
+///
+/// Logging is enabled by setting `RUST_LOG` to the desired
+/// level, possibly restricted to this program:
+/// `RUST_LOG=builder=trace ./builder …` will generate many traces.
 #[derive(StructOpt)]
 #[structopt(name = "builder")]
 pub struct Opt {
@@ -41,7 +35,7 @@ pub struct Opt {
     #[structopt(name = "llvm lib directory", long = "with-llvm", parse(from_os_str))]
     with_llvm: Option<PathBuf>,
 
-    /// Get source from a zip file
+    /// Get source from a zip file or URL
     #[structopt(name = "zip file", long = "--zip", short = "-z")]
     zip_file: Option<String>,
 
@@ -53,7 +47,7 @@ pub struct Opt {
     #[structopt(short = "o", long = "output", parse(from_os_str))]
     output_file: Option<PathBuf>,
 
-    /// Top-level dragon-tiger directory. Zip file will be unzipped in a subdirectory if specified
+    /// Top-level dragon-tiger directory (and zip work space).
     #[structopt(name = "compiler directory", parse(from_os_str))]
     src_dir: PathBuf,
 
