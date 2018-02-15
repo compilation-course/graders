@@ -1,12 +1,12 @@
 use std::fs::{self, File};
-use std::io::{self, Error, ErrorKind};
+use std::io::{Error, ErrorKind, Result};
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use zip;
 
-/// Unzip `zip_file` in `dir`, ensure that all paths start with "dragon_tiger/",
-/// and return the path to the "dragon_tiger" directory.
-pub fn unzip(dir: &PathBuf, zip_file: &PathBuf) -> io::Result<PathBuf> {
+/// Unzip `zip_file` in `dir`, ensure that all paths start with `dragon_tiger/`,
+/// and return the path to the `dragon_tiger` directory.
+pub fn unzip(dir: &PathBuf, zip_file: &PathBuf) -> Result<PathBuf> {
     let reader = File::open(zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     for i in 0..zip.len() {
