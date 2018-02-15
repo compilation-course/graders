@@ -9,6 +9,7 @@
 //! tried otherwise.
 
 extern crate mktemp;
+extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_yaml;
@@ -38,8 +39,8 @@ pub struct Opt {
     with_llvm: Option<PathBuf>,
 
     /// Get source from a zip file
-    #[structopt(name = "zip file", long = "--zip", short = "-z", parse(from_os_str))]
-    zip_file: Option<PathBuf>,
+    #[structopt(name = "zip file", long = "--zip", short = "-z")]
+    zip_file: Option<String>,
 
     /// Run tests in verbose mode
     #[structopt(short = "v", long = "verbose")]
