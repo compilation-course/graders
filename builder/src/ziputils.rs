@@ -47,9 +47,11 @@ fn unzip_url(dir: &PathBuf, url: &str) -> Result<PathBuf> {
     let mut zip = reqwest::get(url)
         .map_err(|e| Error::new(ErrorKind::Other, format!("cannot retrieve {}: {}", url, e)))?;
     if zip.status() != StatusCode::Ok {
+        warn!("could not retrieve {}: {}", url, zip.status());
         return Err(Error::new(ErrorKind::Other, format!("cannot retrieve {}: {}", url, zip.status())));
     }
     let target_file = dir.join("dragon-tiger.zip");
+    debug!("retrieving {} as {:?}", url, target_file);
     let mut target = File::create(&target_file)?;
     zip.copy_to(&mut target).map_err(|e| Error::new(ErrorKind::Other, format!("cannot write zip file: {}", e)))?;
     unzip(dir, target_file.to_str().unwrap())

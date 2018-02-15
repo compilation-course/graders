@@ -8,6 +8,9 @@
 //! (or give a meaningful error message) of the latest command
 //! tried otherwise.
 
+extern crate env_logger;
+#[macro_use]
+extern crate log;
 extern crate mktemp;
 extern crate reqwest;
 #[macro_use]
@@ -64,9 +67,11 @@ pub struct Opt {
 }
 
 fn main() {
+    env_logger::init();
     let mut opt = Opt::from_args();
     let tmp = Temp::new_dir_in(&opt.src_dir).unwrap();
     if let Some(ref zip_file) = opt.zip_file {
+        info!("Unzipping {}", zip_file);
         match unzip(&tmp.to_path_buf(), zip_file) {
             Ok(d) => opt.src_dir = d,
             Err(e) => {
