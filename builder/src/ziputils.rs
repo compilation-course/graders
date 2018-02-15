@@ -12,6 +12,7 @@ pub fn unzip(dir: &PathBuf, zip_file: &str) -> Result<PathBuf> {
     if zip_file.starts_with("http://") || zip_file.starts_with("https://") {
         return unzip_url(dir, zip_file);
     }
+    trace!("opening {}", zip_file);
     let reader = File::open(zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     for i in 0..zip.len() {
@@ -29,8 +30,10 @@ pub fn unzip(dir: &PathBuf, zip_file: &str) -> Result<PathBuf> {
         }
         let target_file = dir.join(name);
         if target_file.to_str().unwrap().ends_with('/') {
+            trace!("creating directory {:?}", target_file);
             fs::create_dir(&target_file)?;
         } else {
+            trace!("creating file {:?}", target_file);
             let mut target = File::create(target_file)?;
             let mut content = Vec::with_capacity(file.size() as usize);
             file.read_to_end(&mut content)?;
@@ -40,7 +43,9 @@ pub fn unzip(dir: &PathBuf, zip_file: &str) -> Result<PathBuf> {
             target.set_permissions(perms)?;
         }
     }
-    Ok(dir.join("dragon-tiger"))
+    let dir = dir.join("dragon-tiger");
+    info!("unzipped compiler is available in {:?}", dir);
+    Ok(dir)
 }
 
 fn unzip_url(dir: &PathBuf, url: &str) -> Result<PathBuf> {
