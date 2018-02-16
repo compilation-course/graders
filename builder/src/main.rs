@@ -61,13 +61,19 @@ fn main() {
     let mut opt = Opt::from_args();
     let tmp = Temp::new_dir().unwrap();
     if !Path::new(&opt.src).is_dir() {
-        info!("Unzipping {:?}", opt.src);
-        match unzip(&tmp.to_path_buf(), &opt.src) {
-            Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
-            Err(e) => {
-                outputs::write_error(&opt, format!("cannot extract zip file: {}", e));
-                return;
+        if opt.src.ends_with(".zip") {
+            info!("Unzipping {:?}", opt.src);
+            match unzip(&tmp.to_path_buf(), &opt.src) {
+                Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
+                Err(e) => {
+                    outputs::write_error(&opt, format!("cannot extract zip file: {}", e));
+                    return;
+                }
             }
+        } else {
+            error!("unknown repository source {}", opt.src);
+            outputs::write_error(&opt, format!("unknown repository source {}", opt.src));
+            return;
         }
     }
     let dtiger = Path::new(&opt.src).join("src/driver/dtiger");
