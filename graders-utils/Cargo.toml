@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Samuel Tardieu <sam@rfc1149.net>"]
 
 [dependencies]
+lazy_static = "1.0"
 log = "0.4.1"
 reqwest = "0.8.4"
 zip = "0.3"
