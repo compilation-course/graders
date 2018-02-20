@@ -1,0 +1,6 @@
+[gitlab]
+token = "230348294383984f"
+
+[package]
+threads = 4
+zip_dir = "/some/path/to/zip/dir"

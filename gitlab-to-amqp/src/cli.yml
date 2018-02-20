@@ -1,0 +1,23 @@
+name: gitlab-to-amqp
+author: Samuel Tardieu <sam@rfc1149.net>
+args:
+  - config:
+      short: c
+      long: config
+      value_name: FILE
+      help: Configuration file containing credentials
+      takes_value: true
+      default_value: "config.toml"
+  - ip:
+      long: ip
+      value_name: ADDRESS
+      help: IP address to listen to
+      takes_value: true
+      default_value: "127.0.0.1"
+  - port:
+      short: p
+      long: port
+      value_name: PORT
+      help: Port to listen to
+      takes_value: true
+      default_value: "80"
