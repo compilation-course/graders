@@ -1,23 +1,21 @@
 extern crate env_logger;
+extern crate graders_utils;
 #[macro_use]
 extern crate log;
 extern crate mktemp;
-extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_yaml;
 #[macro_use]
 extern crate structopt;
-extern crate zip;
 
 mod commands;
 mod outputs;
-mod ziputils;
 
+use graders_utils::ziputils::unzip;
 use mktemp::Temp;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
-use ziputils::unzip;
 
 /// Compile the compiler from the given directory, set env
 /// DTIGER environment variable and run the tests using the
