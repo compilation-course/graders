@@ -78,7 +78,10 @@ fn declare_exchange(
             .exchange_declare(
                 &exchange,
                 "direct",
-                &ExchangeDeclareOptions::default(),
+                &ExchangeDeclareOptions {
+                    durable: true,
+                    ..Default::default()
+                },
                 &FieldTable::new(),
             )
             .map_err(move |e| {
@@ -95,7 +98,14 @@ fn declare_queue(
     let queue = config.queue.clone();
     Box::new(
         channel
-            .queue_declare(&queue, &QueueDeclareOptions::default(), &FieldTable::new())
+            .queue_declare(
+                &queue,
+                &QueueDeclareOptions {
+                    durable: true,
+                    ..Default::default()
+                },
+                &FieldTable::new(),
+            )
             .map_err(move |e| {
                 error!("could not declare queue {}: {}", queue, e);
                 ()
