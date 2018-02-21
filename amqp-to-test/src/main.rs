@@ -20,6 +20,10 @@ mod errors;
 
 use clap::App;
 use config::Configuration;
+use futures::{future, Stream};
+use futures::sync::mpsc;
+use std::sync::Arc;
+use tokio::executor::current_thread;
 
 fn configuration() -> errors::Result<Configuration> {
     let yaml = load_yaml!("cli.yml");
@@ -34,6 +38,16 @@ fn main() {
 }
 
 fn run() -> errors::Result<()> {
-    let config = configuration()?;
+    let config = Arc::new(configuration()?);
+    let (send_request, receive_request) = mpsc::channel(16);
+    let amqp_process = amqp::amqp_process(&config, send_request);
+    current_thread::run(|_| {
+        current_thread::spawn(amqp_process);
+        current_thread::spawn(
+            receive_request
+                .map_err(|_| ())
+                .for_each(|r| future::ok(info!("Received request {:?}", r)))
+        );
+    });
     Ok(())
 }
