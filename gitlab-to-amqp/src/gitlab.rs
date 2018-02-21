@@ -1,10 +1,17 @@
 use config::Configuration;
 use errors;
+use futures::{Future, Sink};
+use futures::stream::{self, Stream};
+use futures_cpupool::CpuPool;
+use futures::sync::mpsc::{Receiver, Sender};
 use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use git2::build::{CheckoutBuilder, RepoBuilder};
+use graders_utils::amqputils::AMQPRequest;
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
 use std::path::Path;
+use std::sync::Arc;
+use url::Url;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabRepository {
@@ -47,19 +54,19 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
         repo.checkout_tree(
             &rev,
             Some(&mut CheckoutBuilder::new()
-                .force()
-                .remove_untracked(true)
-                .remove_ignored(true)),
-        )?;
+                 .force()
+                 .remove_untracked(true)
+                 .remove_ignored(true)),
+                 )?;
         repo.set_head_detached(rev.id())?;
     }
     Ok(repo)
 }
 
-pub fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<(String, String)>> {
+fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<(String, String)>> {
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
-    let repo = clone(&config.gitlab.token, hook, &root)?;
+    let _repo = clone(&config.gitlab.token, hook, &root)?;
     let zip_dir = &Path::new(&config.package.zip_dir);
     let dir = &config.labs.dir;
     let mut to_test = Vec::new();
@@ -77,4 +84,54 @@ pub fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<
     }
     info!("to test: {:?}", to_test);
     Ok(to_test)
+}
+
+fn labs_result_to_stream(
+    base_url: &Url,
+    hook: &GitlabHook,
+    labs: Vec<(String, String)>,
+    ) -> Box<Stream<Item = AMQPRequest<GitlabHook>, Error = ()>> {
+    let hook = hook.clone();
+    let base_url = base_url.clone();
+    Box::new(stream::iter_ok(labs.into_iter().map(move |(step, zip)| {
+        AMQPRequest {
+            step: step,
+            zip_url: base_url
+                .join("zips/")
+                .unwrap()
+                .join(&zip)
+                .unwrap()
+                .to_string(),
+                result_queue: "gitlab".to_owned(),
+                opaque: hook.clone(),
+        }
+    })))
+}
+
+pub fn packager(
+    config: &Arc<Configuration>,
+    cpu_pool: &CpuPool,
+    receive_hook: Receiver<GitlabHook>,
+    send_request: Sender<AMQPRequest<GitlabHook>>
+    ) -> Box<Future<Item = (), Error = ()>>
+{
+    let cpu_pool = cpu_pool.clone();
+    let config = config.clone();
+    Box::new(
+        send_request
+        .sink_map_err(|_| ())
+        .send_all(
+            receive_hook
+            .and_then(move |hook: GitlabHook| {
+                let clone_hook = hook.clone();
+                let base_url = config.server.base_url.clone();
+                let config = config.clone();
+                cpu_pool
+                    .spawn_fn(move || package(&config, &clone_hook).map_err(|_| ()))
+                    .map(move |labs| labs_result_to_stream(&base_url, &hook, labs))
+            })
+            .flatten(),
+            )
+        .map(|_| ())
+        )
 }

@@ -28,11 +28,10 @@ mod gitlab;
 use clap::App;
 use config::Configuration;
 use futures::*;
-use futures::sync::mpsc::Sender;
+use futures::sync::mpsc::{self, Sender};
 use futures_cpupool::CpuPool;
 use gitlab::GitlabHook;
 use graders_utils::fileutils;
-use graders_utils::amqputils::AMQPRequest;
 use hyper::{Method, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
@@ -42,6 +41,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::thread;
 use tokio::executor::current_thread;
 
 static NOT_FOUND: &str = "Not found, try something else";
@@ -61,9 +61,18 @@ fn run() -> errors::Result<()> {
         "will listen on {:?} with base URL of {}",
         addr, config.server.base_url
     );
-    let cpu_pool = Arc::new(CpuPool::new(config.package.threads));
-    let send_request = amqp::start_amqp_thread(&config);
-    let gitlab_service = Rc::new(GitlabService::new(&cpu_pool, &config, send_request));
+    let cpu_pool = CpuPool::new(config.package.threads);
+    let (send_hook, receive_hook) = mpsc::channel(16);
+    let (send_request, receive_request) = mpsc::channel(16);
+    let cloned_config = config.clone();
+    let cloned_cpu_pool = cpu_pool.clone();
+    thread::spawn(move || {
+        current_thread::run(|_| {
+            current_thread::spawn(gitlab::packager(&cloned_config, &cloned_cpu_pool, receive_hook, send_request));
+            current_thread::spawn(amqp::amqp_process(&cloned_config, receive_request));
+        });
+    });
+    let gitlab_service = Rc::new(GitlabService::new(&cpu_pool, &config, send_hook));
     let server = Http::new().bind(&addr, move || Ok(gitlab_service.clone()))?;
     server.run()?;
     Ok(())
@@ -76,16 +85,16 @@ fn main() {
 }
 
 struct GitlabService {
-    cpu_pool: Arc<CpuPool>,
+    cpu_pool: CpuPool,
     config: Arc<Configuration>,
-    send_request: Sender<AMQPRequest<GitlabHook>>,
+    send_request: Sender<GitlabHook>,
 }
 
 impl GitlabService {
     fn new(
-        cpu_pool: &Arc<CpuPool>,
+        cpu_pool: &CpuPool,
         config: &Arc<Configuration>,
-        send_request: Sender<AMQPRequest<GitlabHook>>,
+        send_request: Sender<GitlabHook>,
     ) -> GitlabService {
         GitlabService {
             cpu_pool: cpu_pool.clone(),
@@ -105,10 +114,7 @@ impl Service for GitlabService {
         trace!("got {} {}", req.method(), req.path());
         match (req.method(), req.path()) {
             (&Method::Post, "/push") => {
-                let config = self.config.clone();
-                let cpu_pool = self.cpu_pool.clone();
                 let send_request = self.send_request.clone();
-                let base_url = config.server.base_url.clone();
                 Box::new(
                     req.body()
                         .concat2()
@@ -117,40 +123,17 @@ impl Service for GitlabService {
                                 .map_err(|_| hyper::Error::Status)
                         })
                         .map(move |hook| {
-                            trace!("received json and will proceed to checkout: {:?}", hook);
-                            let clone_hook = hook.clone();
-                            let process = cpu_pool
-                                .spawn_fn(move || {
-                                    gitlab::package(&config, &clone_hook).map_err(|e| {
-                                        warn!("could not clone {:?}: {}", clone_hook.url(), e);
-                                        e
-                                    })
-                                })
-                                .map(move |labs| {
-                                    let items = stream::iter_ok(labs.into_iter().map(
-                                        move |(step, zip)| {
-                                            AMQPRequest {
-                                                step: step,
-                                                zip_url: base_url
-                                                    .join("zips/")
-                                                    .unwrap()
-                                                    .join(&zip)
-                                                    .unwrap()
-                                                    .to_string(),
-                                                result_queue: "gitlab".to_owned(),
-                                                opaque: hook.clone(),
-                                            }
-                                        },
-                                    ));
-                                    let send = send_request.clone().send_all(items).map_err(|e| {
-                                        error!("unable to send items to AMQP thread: {}", e);
+                            trace!("received json and will pass it around: {:?}", hook);
+                            current_thread::run(|_| {
+                                let hook_clone = hook.clone();
+                                current_thread::spawn(
+                                    send_request.clone().send(hook).map(|_| ()).map_err(move |e| {
+                                        error!("unable to send hook {:?} around: {}", hook_clone, e);
                                         ()
-                                    });
-                                    current_thread::spawn(send.map(|_| ()));
-                                });
-                            current_thread::run(|_| current_thread::spawn(process.map_err(|_| ())));
-                            Response::<hyper::Body>::new()
-                                .with_status(StatusCode::NoContent)
+                                    }),
+                                )
+                            });
+                            Response::<hyper::Body>::new().with_status(StatusCode::NoContent)
                         }),
                 )
             }
