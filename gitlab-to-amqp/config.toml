@@ -9,3 +9,7 @@ token = "230348294383984f"
 [package]
 threads = 4
 zip_dir = "/some/path/to/zip/dir"
+
+[labs]
+steps = ["lab2", "lab3"]
+dir = "dragon-tiger"

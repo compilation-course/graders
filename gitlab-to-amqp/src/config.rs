@@ -1,7 +1,7 @@
 use errors;
 use std::fs::{self, File};
 use std::net::IpAddr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::io::Read;
 use toml;
 use url::Url;
@@ -12,6 +12,7 @@ pub struct Configuration {
     pub server: ServerConfiguration,
     pub gitlab: GitlabConfiguration,
     pub package: PackageConfiguration,
+    pub labs: LabsConfiguration,
 }
 
 #[derive(Clone, Deserialize)]
@@ -31,6 +32,12 @@ pub struct GitlabConfiguration {
 pub struct PackageConfiguration {
     pub threads: usize,
     pub zip_dir: String,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct LabsConfiguration {
+    pub steps: Vec<String>,
+    pub dir: PathBuf,
 }
 
 pub fn load_configuration(file: &str) -> errors::Result<Configuration> {
