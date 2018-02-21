@@ -20,6 +20,7 @@ extern crate toml;
 extern crate url;
 extern crate url_serde;
 
+mod amqp;
 mod config;
 mod errors;
 mod gitlab;
@@ -27,25 +28,21 @@ mod gitlab;
 use clap::App;
 use config::Configuration;
 use futures::*;
-use futures::sync::mpsc::{self, Receiver, Sender};
+use futures::sync::mpsc::Sender;
 use futures_cpupool::CpuPool;
 use gitlab::GitlabHook;
 use graders_utils::fileutils;
-use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
+use graders_utils::amqputils::AMQPRequest;
 use hyper::{Method, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
-use lapin::channel::*;
-use lapin::types::FieldTable;
 use std::fs::File;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::thread;
 use tokio::executor::current_thread;
-use tokio::reactor::Handle;
 
 static NOT_FOUND: &str = "Not found, try something else";
 static TEXT: &str = "Hello, World!";
@@ -66,7 +63,7 @@ fn run() -> errors::Result<()> {
         addr, config.server.base_url
     );
     let cpu_pool = Arc::new(CpuPool::new(config.package.threads));
-    let send_request = start_amqp_thread(&config);
+    let send_request = amqp::start_amqp_thread(&config);
     let gitlab_service = Rc::new(GitlabService::new(&cpu_pool, &config, send_request));
     let server = Http::new().bind(&addr, move || Ok(gitlab_service.clone()))?;
     server.run()?;
@@ -202,59 +199,4 @@ fn not_found() -> Box<Future<Item = Response, Error = hyper::Error>> {
             .with_header(ContentType::plaintext())
             .with_body(NOT_FOUND),
     ))
-}
-
-fn start_amqp_thread(config: &Arc<Configuration>) -> Sender<AMQPRequest<GitlabHook>> {
-    let (send_request, receive_request) = mpsc::channel(16);
-    let config = config.clone();
-    thread::spawn(move || run_amqp(config, receive_request));
-    send_request
-}
-
-fn run_amqp(config: Arc<Configuration>, receive_request: Receiver<AMQPRequest<GitlabHook>>) {
-    current_thread::run(move |_| {
-        current_thread::spawn(
-            {
-                debug!("connecting to AMQP server");
-                amqputils::create_client(&Handle::default(), &config.amqp)
-            }.and_then(|client| {
-                debug!("creating AMQP channel for publication");
-                client.create_channel().and_then(|channel| {
-                    debug!("creating AMQP exchange");
-                    channel
-                        .exchange_declare(
-                            &config.amqp.exchange,
-                            "direct",
-                            &ExchangeDeclareOptions::default(),
-                            &FieldTable::new(),
-                        )
-                        .map(|_| {
-                            current_thread::spawn(
-                                receive_request
-                                .map(move |req| {
-                                    trace!("handling incoming AMQP publishing request: {:?}", req);
-                                    channel.basic_publish(
-                                        &config.amqp.exchange,
-                                        &config.amqp.routing_key,
-                                        serde_json::to_string(&req).unwrap().as_bytes(),
-                                        &BasicPublishOptions::default(),
-                                        BasicProperties::default(),
-                                        )
-                                })
-                                // Switch for a fold or a ignore
-                                .collect()
-                                .map(|_| ())
-                                .map_err(|_| ()),
-                            )
-                        })
-                })
-            })
-                .then(|r| {
-                    if let Err(e) = r {
-                        error!("error in AMQP thread: {}", e);
-                    }
-                    future::ok(())
-                }),
-        )
-    });
 }
