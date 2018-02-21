@@ -4,28 +4,11 @@ use futures::Stream;
 use futures::sync::mpsc::Receiver;
 use graders_utils::amqputils::{self, AMQPRequest};
 use lapin;
-use lapin::channel::*;
-use lapin::types::FieldTable;
+use lapin::channel::{BasicProperties, BasicPublishOptions};
 use serde_json;
 use std::sync::Arc;
 use tokio;
 use tokio::reactor::Handle;
-
-fn amqp_declare_exchange(
-    channel: &lapin::channel::Channel<tokio::net::TcpStream>,
-    config: &Arc<Configuration>,
-) -> Box<Future<Item = (), Error = ()>> {
-    Box::new(
-        channel
-            .exchange_declare(
-                &config.amqp.exchange,
-                "direct",
-                &ExchangeDeclareOptions::default(),
-                &FieldTable::new(),
-            )
-            .map_err(|_| ()),
-    )
-}
 
 fn amqp_publisher(
     channel: &lapin::channel::Channel<tokio::net::TcpStream>,
@@ -52,17 +35,17 @@ fn amqp_publisher(
 
 pub fn amqp_process(
     config: &Arc<Configuration>,
-    receive_request: Receiver<AMQPRequest>
-) -> 
-    Box<Future<Item = (), Error = ()>>
- {
+    receive_request: Receiver<AMQPRequest>,
+) -> Box<Future<Item = (), Error = ()>> {
     let client = amqputils::create_client(&Handle::default(), &config.amqp);
     let config = config.clone();
-    Box::new(client
-        .and_then(|client| client.create_channel())
-        .map_err(|_| ())
-        .and_then(|channel| {
-            amqp_declare_exchange(&channel, &config)
-                .and_then(move |_| amqp_publisher(&channel, &config, receive_request))
-        }))
+    Box::new(
+        client
+            .and_then(|client| client.create_channel())
+            .map_err(|_| ())
+            .and_then(|channel| {
+                amqputils::declare_exchange_and_queue(&channel, &config.amqp)
+                    .and_then(move |_| amqp_publisher(&channel, &config, receive_request))
+            }),
+    )
 }

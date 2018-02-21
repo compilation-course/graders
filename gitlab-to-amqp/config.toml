@@ -19,3 +19,4 @@ host = "antinea.enst.fr"
 port = 5672
 exchange = "grader"
 routing_key = "lab"
+queue = "jobs"

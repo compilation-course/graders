@@ -1,0 +1,8 @@
+name: amqp-to-test
+author: Samuel Tardieu <sam@rfc1149.net>
+args:
+  - config:
+      value_name: FILE
+      help: Configuration file containing credentials
+      takes_value: true
+      default_value: "config.toml"

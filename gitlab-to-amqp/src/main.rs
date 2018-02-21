@@ -68,7 +68,12 @@ fn run() -> errors::Result<()> {
     let cloned_cpu_pool = cpu_pool.clone();
     thread::spawn(move || {
         current_thread::run(|_| {
-            current_thread::spawn(gitlab::packager(&cloned_config, &cloned_cpu_pool, receive_hook, send_request));
+            current_thread::spawn(gitlab::packager(
+                &cloned_config,
+                &cloned_cpu_pool,
+                receive_hook,
+                send_request,
+            ));
             current_thread::spawn(amqp::amqp_process(&cloned_config, receive_request));
         });
     });
@@ -127,10 +132,17 @@ impl Service for GitlabService {
                             current_thread::run(|_| {
                                 let hook_clone = hook.clone();
                                 current_thread::spawn(
-                                    send_request.clone().send(hook).map(|_| ()).map_err(move |e| {
-                                        error!("unable to send hook {:?} around: {}", hook_clone, e);
-                                        ()
-                                    }),
+                                    send_request
+                                        .clone()
+                                        .send(hook)
+                                        .map(|_| ())
+                                        .map_err(move |e| {
+                                            error!(
+                                                "unable to send hook {:?} around: {}",
+                                                hook_clone, e
+                                            );
+                                            ()
+                                        }),
                                 )
                             });
                             Response::<hyper::Body>::new().with_status(StatusCode::NoContent)

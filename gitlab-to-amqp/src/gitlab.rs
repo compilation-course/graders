@@ -55,10 +55,10 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
         repo.checkout_tree(
             &rev,
             Some(&mut CheckoutBuilder::new()
-                 .force()
-                 .remove_untracked(true)
-                 .remove_ignored(true)),
-                 )?;
+                .force()
+                .remove_untracked(true)
+                .remove_ignored(true)),
+        )?;
         repo.set_head_detached(rev.id())?;
     }
     Ok(repo)
@@ -91,7 +91,7 @@ fn labs_result_to_stream(
     base_url: &Url,
     hook: &GitlabHook,
     labs: Vec<(String, String)>,
-    ) -> Box<Stream<Item = AMQPRequest, Error = ()>> {
+) -> Box<Stream<Item = AMQPRequest, Error = ()>> {
     let hook = hook.clone();
     let base_url = base_url.clone();
     Box::new(stream::iter_ok(labs.into_iter().map(move |(step, zip)| {
@@ -103,8 +103,8 @@ fn labs_result_to_stream(
                 .join(&zip)
                 .unwrap()
                 .to_string(),
-                result_queue: "gitlab".to_owned(),
-                opaque: serde_json::to_string(&hook).unwrap(),
+            result_queue: "gitlab".to_owned(),
+            opaque: serde_json::to_string(&hook).unwrap(),
         }
     })))
 }
@@ -113,26 +113,25 @@ pub fn packager(
     config: &Arc<Configuration>,
     cpu_pool: &CpuPool,
     receive_hook: Receiver<GitlabHook>,
-    send_request: Sender<AMQPRequest>
-    ) -> Box<Future<Item = (), Error = ()>>
-{
+    send_request: Sender<AMQPRequest>,
+) -> Box<Future<Item = (), Error = ()>> {
     let cpu_pool = cpu_pool.clone();
     let config = config.clone();
     Box::new(
         send_request
-        .sink_map_err(|_| ())
-        .send_all(
-            receive_hook
-            .and_then(move |hook: GitlabHook| {
-                let clone_hook = hook.clone();
-                let base_url = config.server.base_url.clone();
-                let config = config.clone();
-                cpu_pool
-                    .spawn_fn(move || package(&config, &clone_hook).map_err(|_| ()))
-                    .map(move |labs| labs_result_to_stream(&base_url, &hook, labs))
-            })
-            .flatten(),
+            .sink_map_err(|_| ())
+            .send_all(
+                receive_hook
+                    .and_then(move |hook: GitlabHook| {
+                        let clone_hook = hook.clone();
+                        let base_url = config.server.base_url.clone();
+                        let config = config.clone();
+                        cpu_pool
+                            .spawn_fn(move || package(&config, &clone_hook).map_err(|_| ()))
+                            .map(move |labs| labs_result_to_stream(&base_url, &hook, labs))
+                    })
+                    .flatten(),
             )
-        .map(|_| ())
-        )
+            .map(|_| ()),
+    )
 }

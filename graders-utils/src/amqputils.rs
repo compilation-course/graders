@@ -1,18 +1,21 @@
 use futures::future::{self, Future};
 use lapin;
+use lapin::channel::{Channel, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions};
 use lapin::client::{Client, ConnectionOptions};
+use lapin::types::FieldTable;
 use std::io;
 use std::net;
 use tokio::executor::current_thread;
 use tokio::net::TcpStream;
 use tokio::reactor::Handle;
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct AMQPConfiguration {
     pub host: String,
     pub port: u16,
     pub exchange: String,
     pub routing_key: String,
+    pub queue: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -48,4 +51,80 @@ pub fn create_client(
         ),
         Err(e) => Box::new(future::err(e)),
     }
+}
+
+pub fn declare_exchange_and_queue(
+    channel: &Channel<TcpStream>,
+    config: &AMQPConfiguration,
+) -> Box<Future<Item = (), Error = ()>> {
+    let channel = channel.clone();
+    let channel1 = channel.clone();
+    let config = config.clone();
+    let config1 = config.clone();
+    Box::new(
+        declare_exchange(&channel, &config)
+            .and_then(move |_| declare_queue(&channel, &config))
+            .and_then(move |_| bind_queue(&channel1, &config1)),
+    )
+}
+
+fn declare_exchange(
+    channel: &Channel<TcpStream>,
+    config: &AMQPConfiguration,
+) -> Box<Future<Item = (), Error = ()>> {
+    let exchange = config.exchange.clone();
+    Box::new(
+        channel
+            .exchange_declare(
+                &exchange,
+                "direct",
+                &ExchangeDeclareOptions::default(),
+                &FieldTable::new(),
+            )
+            .map_err(move |e| {
+                error!("cannot declare exchange {}: {}", exchange, e);
+                ()
+            }),
+    )
+}
+
+fn declare_queue(
+    channel: &Channel<TcpStream>,
+    config: &AMQPConfiguration,
+) -> Box<Future<Item = (), Error = ()>> {
+    let queue = config.queue.clone();
+    Box::new(
+        channel
+            .queue_declare(&queue, &QueueDeclareOptions::default(), &FieldTable::new())
+            .map_err(move |e| {
+                error!("could not declare queue {}: {}", queue, e);
+                ()
+            }),
+    )
+}
+
+fn bind_queue(
+    channel: &Channel<TcpStream>,
+    config: &AMQPConfiguration,
+) -> Box<Future<Item = (), Error = ()>> {
+    let queue = config.queue.clone();
+    let exchange = config.exchange.clone();
+    let routing_key = config.routing_key.clone();
+    Box::new(
+        channel
+            .queue_bind(
+                &queue,
+                &exchange,
+                &routing_key,
+                &QueueBindOptions::default(),
+                &FieldTable::new(),
+            )
+            .map_err(move |e| {
+                error!(
+                    "could not bind queue {} to exchange {} using routing key {}: {}",
+                    queue, exchange, routing_key, e
+                );
+                ()
+            }),
+    )
 }
