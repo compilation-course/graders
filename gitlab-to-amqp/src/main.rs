@@ -45,7 +45,6 @@ use std::sync::Arc;
 use tokio::executor::current_thread;
 
 static NOT_FOUND: &str = "Not found, try something else";
-static TEXT: &str = "Hello, World!";
 
 fn configuration() -> errors::Result<Configuration> {
     let yaml = load_yaml!("cli.yml");
@@ -151,9 +150,7 @@ impl Service for GitlabService {
                                 });
                             current_thread::run(|_| current_thread::spawn(process.map_err(|_| ())));
                             Response::<hyper::Body>::new()
-                                .with_header(ContentLength(TEXT.len() as u64))
-                                .with_header(ContentType::plaintext())
-                                .with_body(TEXT)
+                                .with_status(StatusCode::NoContent)
                         }),
                 )
             }
