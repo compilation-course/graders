@@ -2,7 +2,6 @@ use config::Configuration;
 use futures::future::{self, Future};
 use futures::Stream;
 use futures::sync::mpsc::Receiver;
-use gitlab::GitlabHook;
 use graders_utils::amqputils::{self, AMQPRequest};
 use lapin;
 use lapin::channel::*;
@@ -31,7 +30,7 @@ fn amqp_declare_exchange(
 fn amqp_publisher(
     channel: &lapin::channel::Channel<tokio::net::TcpStream>,
     config: &Arc<Configuration>,
-    receive_request: Receiver<AMQPRequest<GitlabHook>>,
+    receive_request: Receiver<AMQPRequest>,
 ) -> Box<Future<Item = (), Error = ()>> {
     let channel = channel.clone();
     let config = config.clone();
@@ -53,7 +52,7 @@ fn amqp_publisher(
 
 pub fn amqp_process(
     config: &Arc<Configuration>,
-    receive_request: Receiver<AMQPRequest<GitlabHook>>
+    receive_request: Receiver<AMQPRequest>
 ) -> 
     Box<Future<Item = (), Error = ()>>
  {

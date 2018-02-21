@@ -9,6 +9,7 @@ use git2::build::{CheckoutBuilder, RepoBuilder};
 use graders_utils::amqputils::AMQPRequest;
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
+use serde_json;
 use std::path::Path;
 use std::sync::Arc;
 use url::Url;
@@ -90,7 +91,7 @@ fn labs_result_to_stream(
     base_url: &Url,
     hook: &GitlabHook,
     labs: Vec<(String, String)>,
-    ) -> Box<Stream<Item = AMQPRequest<GitlabHook>, Error = ()>> {
+    ) -> Box<Stream<Item = AMQPRequest, Error = ()>> {
     let hook = hook.clone();
     let base_url = base_url.clone();
     Box::new(stream::iter_ok(labs.into_iter().map(move |(step, zip)| {
@@ -103,7 +104,7 @@ fn labs_result_to_stream(
                 .unwrap()
                 .to_string(),
                 result_queue: "gitlab".to_owned(),
-                opaque: hook.clone(),
+                opaque: serde_json::to_string(&hook).unwrap(),
         }
     })))
 }
@@ -112,7 +113,7 @@ pub fn packager(
     config: &Arc<Configuration>,
     cpu_pool: &CpuPool,
     receive_hook: Receiver<GitlabHook>,
-    send_request: Sender<AMQPRequest<GitlabHook>>
+    send_request: Sender<AMQPRequest>
     ) -> Box<Future<Item = (), Error = ()>>
 {
     let cpu_pool = cpu_pool.clone();

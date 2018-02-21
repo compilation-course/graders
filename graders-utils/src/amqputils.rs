@@ -1,11 +1,8 @@
 use futures::future::{self, Future};
 use lapin;
-use lapin::channel::Channel;
 use lapin::client::{Client, ConnectionOptions};
-use std::fmt::Debug;
 use std::io;
 use std::net;
-use std::result::Result;
 use tokio::executor::current_thread;
 use tokio::net::TcpStream;
 use tokio::reactor::Handle;
@@ -19,17 +16,17 @@ pub struct AMQPConfiguration {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AMQPRequest<O: Debug> {
+pub struct AMQPRequest {
     pub step: String,
     pub zip_url: String,
     pub result_queue: String,
-    pub opaque: O,
+    pub opaque: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct AMQPResponse<O> {
+pub struct AMQPResponse {
     pub step: String,
-    pub opaque: O,
+    pub opaque: String,
     pub yaml_result: String,
 }
 
