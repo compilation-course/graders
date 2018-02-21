@@ -15,6 +15,8 @@ extern crate mktemp;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate toml;
+extern crate url;
+extern crate url_serde;
 
 mod config;
 mod errors;
@@ -23,7 +25,7 @@ mod gitlab;
 use clap::App;
 use futures::*;
 use futures_cpupool::CpuPool;
-use graders_utils::fileutils;
+use graders_utils::{amqputils, fileutils};
 use hyper::{Method, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
@@ -41,12 +43,10 @@ fn run() -> errors::Result<()> {
     let matches = App::from_yaml(yaml).get_matches();
     let config = config::load_configuration(matches.value_of("config").unwrap()).unwrap();
     config::setup_dirs(&config)?;
+    let addr = SocketAddr::new(config.server.ip, config.server.port);
+    info!("will listen on {:?} with base URL of {}", addr, config.server.base_url);
     let gi = Rc::new(GitlabInterface::new(config));
     setup();
-    let addr = SocketAddr::new(
-        matches.value_of("ip").unwrap().parse()?,
-        matches.value_of("port").unwrap().parse()?,
-    );
     let server = Http::new().bind(&addr, move || Ok(gi.clone()))?;
     server.run()?;
     Ok(())

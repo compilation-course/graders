@@ -1,13 +1,25 @@
 use errors;
 use std::fs::{self, File};
+use std::net::IpAddr;
 use std::path::Path;
 use std::io::Read;
 use toml;
+use url::Url;
+use url_serde;
 
 #[derive(Clone, Deserialize)]
 pub struct Configuration {
+    pub server: ServerConfiguration,
     pub gitlab: GitlabConfiguration,
     pub package: PackageConfiguration,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct ServerConfiguration {
+    pub ip: IpAddr,
+    pub port: u16,
+    #[serde(with = "url_serde")]
+    pub base_url: Url,
 }
 
 #[derive(Clone, Deserialize)]
