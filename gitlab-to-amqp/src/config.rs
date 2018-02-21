@@ -31,7 +31,7 @@ pub struct GitlabConfiguration {
 #[derive(Clone, Deserialize)]
 pub struct PackageConfiguration {
     pub threads: usize,
-    pub zip_dir: String,
+    pub zip_dir: PathBuf,
 }
 
 #[derive(Clone, Deserialize)]
