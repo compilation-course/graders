@@ -34,6 +34,7 @@ use std::io::Read;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::rc::Rc;
+use std::sync::Arc;
 
 static NOT_FOUND: &str = "Not found, try something else";
 static TEXT: &str = "Hello, World!";
@@ -60,14 +61,14 @@ fn main() {
 
 struct GitlabInterface {
     cpu_pool: Rc<CpuPool>,
-    config: config::Configuration,
+    config: Arc<config::Configuration>,
 }
 
 impl GitlabInterface {
     fn new(config: config::Configuration) -> GitlabInterface {
         GitlabInterface {
             cpu_pool: Rc::new(CpuPool::new(config.package.threads)),
-            config,
+            config: Arc::new(config),
         }
     }
 }

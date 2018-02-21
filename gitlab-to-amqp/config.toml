@@ -1,5 +1,5 @@
 [server]
-ip = 0.0.0.0
+ip = "0.0.0.0"
 port = 80
 base_url = "http://antinea.enst.fr"
 
@@ -13,3 +13,7 @@ zip_dir = "/some/path/to/zip/dir"
 [labs]
 steps = ["lab2", "lab3"]
 dir = "dragon-tiger"
+
+[amqp]
+host = "antinea.enst.fr"
+port = 5672

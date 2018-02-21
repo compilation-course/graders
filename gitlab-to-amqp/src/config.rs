@@ -1,4 +1,5 @@
 use errors;
+use graders_utils::amqputils::AMQPConfiguration;
 use std::fs::{self, File};
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
@@ -7,12 +8,13 @@ use toml;
 use url::Url;
 use url_serde;
 
-#[derive(Clone, Deserialize)]
+#[derive(Deserialize)]
 pub struct Configuration {
     pub server: ServerConfiguration,
     pub gitlab: GitlabConfiguration,
     pub package: PackageConfiguration,
     pub labs: LabsConfiguration,
+    pub amqp: AMQPConfiguration,
 }
 
 #[derive(Clone, Deserialize)]
