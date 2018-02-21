@@ -66,7 +66,12 @@ fn unzip_url(dir: &PathBuf, url: &str) -> Result<PathBuf> {
 
 /// Recursively build zip while setting the top level name
 pub fn zip_recursive(dir: &Path, top_level: &Path, zip_file: &Path) -> Result<()> {
-    trace!("in zip_recursive({:?}, {:?}, {:?}", dir, top_level, zip_file);
+    trace!(
+        "in zip_recursive({:?}, {:?}, {:?}",
+        dir,
+        top_level,
+        zip_file
+    );
     let writer = File::create(zip_file)?;
     let mut zip = ZipWriter::new(writer);
     add_to_zip(&mut zip, &dir.to_owned(), &Path::new(top_level).to_owned())
@@ -74,7 +79,10 @@ pub fn zip_recursive(dir: &Path, top_level: &Path, zip_file: &Path) -> Result<()
 
 fn add_to_zip(zip_file: &mut ZipWriter<File>, dir: &PathBuf, dir_in_zip: &PathBuf) -> Result<()> {
     trace!("in add_to_zip(FILE, {:?}, {:?})", dir, dir_in_zip);
-    zip_file.add_directory(format!("{}/", dir_in_zip.to_string_lossy()), FileOptions::default())?;
+    zip_file.add_directory(
+        format!("{}/", dir_in_zip.to_string_lossy()),
+        FileOptions::default(),
+    )?;
     for entry in fs::read_dir(dir)? {
         let path = entry?.path();
         let full_path = dir.join(&path);

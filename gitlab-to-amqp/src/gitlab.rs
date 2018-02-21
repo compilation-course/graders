@@ -4,15 +4,15 @@ use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabRepository {
     name: String,
     git_http_url: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabHook {
     object_kind: String,
     checkout_sha: String,
@@ -56,10 +56,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
     Ok(repo)
 }
 
-pub fn package(
-    config: &Configuration,
-    hook: &GitlabHook,
-) -> errors::Result<Vec<(String, String)>> {
+pub fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<(String, String)>> {
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
     let repo = clone(&config.gitlab.token, hook, &root)?;
