@@ -17,6 +17,7 @@ extern crate toml;
 mod amqp;
 mod config;
 mod errors;
+mod tester;
 
 use clap::App;
 use config::Configuration;

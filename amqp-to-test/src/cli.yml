@@ -5,4 +5,4 @@ args:
       value_name: FILE
       help: Configuration file containing credentials
       takes_value: true
-      default_value: "config.toml"
+      required: true

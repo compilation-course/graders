@@ -20,3 +20,18 @@ port = 5672
 exchange = "grader"
 routing_key = "lab"
 queue = "jobs"
+
+[tester]
+docker_image = "rfc1149/builder"
+dir_on_host = "/home/sam/Enseignement/compilation/dragon-tiger/tests/labs"
+dir_in_docker = "/labs"
+parallelism = 1
+program = "test.py"
+
+[tester.test_files]
+
+[tester.test_files.lab2]
+file = "lab2/lab2.yaml"
+
+[tester.test_files.lab3]
+file = "lab2/lab2.yaml"
