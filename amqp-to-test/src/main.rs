@@ -12,6 +12,7 @@ extern crate log;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate serde_yaml;
 extern crate tokio;
 extern crate toml;
 

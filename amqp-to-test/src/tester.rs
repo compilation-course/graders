@@ -2,7 +2,8 @@ use errors::{self, ResultExt};
 use errors::ErrorKind::ExecutionError;
 use futures::{future, Future};
 use futures_cpupool::CpuPool;
-use graders_utils::amqputils::AMQPRequest;
+use graders_utils::amqputils::{AMQPRequest, AMQPResponse};
+use serde_yaml;
 use std::collections::btree_map::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -22,9 +23,11 @@ pub struct TestConfiguration {
     pub file: PathBuf,
 }
 
+/// Execute a request using docker in the given CPU pool. Return the
+/// YAML output or a descriptive error.
 fn execute(
     config: &TesterConfiguration,
-    request: AMQPRequest,
+    request: &AMQPRequest,
     cpu_pool: &CpuPool,
 ) -> Box<Future<Item = String, Error = errors::Error>> {
     let test_file = match config.test_files.get(&request.step) {
@@ -35,6 +38,7 @@ fn execute(
             ))
         }
     };
+    let request = request.clone();
     let program = config.dir_in_docker.join(&config.program);
     let dir_on_host = config.dir_on_host.clone();
     let dir_in_docker = config.dir_in_docker.clone();
@@ -62,4 +66,40 @@ fn execute(
             Err(ExecutionError(String::from_utf8_lossy(&output.stderr).to_string()).into())
         }
     }))
+}
+
+/// Execute a request using docker and build a response containing the
+/// YAML output or response.
+fn execute_request(
+    config: &TesterConfiguration,
+    request: AMQPRequest,
+    cpu_pool: &CpuPool,
+) -> Box<Future<Item = AMQPResponse, Error = ()>> {
+    Box::new(
+        execute(config, &request, cpu_pool)
+            .then(|result| match result {
+                Ok(y) => future::ok(y),
+                Err(e) => future::ok(yaml_error(e)),
+            })
+            .map(move |yaml| AMQPResponse {
+                step: request.step,
+                opaque: request.opaque,
+                yaml_result: yaml,
+            }),
+    )
+}
+
+#[derive(Serialize)]
+struct ExecutionErrorReport {
+    grade: usize,
+    max_grade: usize,
+    description: String,
+}
+
+fn yaml_error(error: errors::Error) -> String {
+    serde_yaml::to_string(&ExecutionErrorReport {
+        grade: 0,
+        max_grade: 1,
+        description: error.to_string(),
+    }).unwrap()
 }
