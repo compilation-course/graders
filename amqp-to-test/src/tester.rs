@@ -1,12 +1,15 @@
+use config;
 use errors::{self, ResultExt};
 use errors::ErrorKind::ExecutionError;
-use futures::{future, Future};
+use futures::{future, Future, Sink, Stream};
+use futures::sync::mpsc::{Receiver, Sender};
 use futures_cpupool::CpuPool;
 use graders_utils::amqputils::{AMQPRequest, AMQPResponse};
 use serde_yaml;
 use std::collections::btree_map::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct TesterConfiguration {
@@ -102,4 +105,25 @@ fn yaml_error(error: errors::Error) -> String {
         max_grade: 1,
         description: error.to_string(),
     }).unwrap()
+}
+
+/// Start the executors on the current thread
+pub fn start_executor(
+    config: &Arc<config::Configuration>,
+    receive_request: Receiver<AMQPRequest>,
+    send_response: Sender<AMQPResponse>,
+) -> Box<Future<Item = (), Error = ()>> {
+    let cpu_pool = CpuPool::new(config.tester.parallelism);
+    let config = config.clone();
+    Box::new(receive_request.for_each(move |request| {
+        let send_response = send_response.clone();
+        execute_request(&config.tester, request, &cpu_pool)
+            .and_then(move |response| {
+                send_response.send(response).map_err(|e| {
+                    error!("unable to send AMQPResponse to queue: {}", e);
+                    ()
+                })
+            })
+            .map(|_| ())
+    }))
 }

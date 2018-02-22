@@ -44,12 +44,15 @@ fn run() -> errors::Result<()> {
     let config = Arc::new(configuration()?);
     let (send_request, receive_request) = mpsc::channel(16);
     let amqp_process = amqp::amqp_process(&config, send_request);
+    let (send_response, receive_response) = mpsc::channel(16);
+    let executor = tester::start_executor(&config, receive_request, send_response);
     current_thread::run(|_| {
         current_thread::spawn(amqp_process);
+        current_thread::spawn(executor);
         current_thread::spawn(
-            receive_request
+            receive_response
                 .map_err(|_| ())
-                .for_each(|r| future::ok(info!("Received request {:?}", r))),
+                .for_each(|r| future::ok(info!("Received response {:?}", r))),
         );
     });
     Ok(())

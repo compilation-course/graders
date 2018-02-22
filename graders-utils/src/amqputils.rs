@@ -26,7 +26,7 @@ pub struct AMQPRequest {
     pub opaque: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AMQPResponse {
     pub step: String,
     pub opaque: String,
