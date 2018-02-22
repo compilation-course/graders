@@ -141,8 +141,11 @@ impl Service for GitlabService {
                     req.body()
                         .concat2()
                         .and_then(|b| {
-                            serde_json::from_slice::<gitlab::GitlabHook>(b.as_ref())
-                                .map_err(|_| hyper::Error::Status)
+                            trace!("decoding body");
+                            serde_json::from_slice::<gitlab::GitlabHook>(b.as_ref()).map_err(|e| {
+                                error!("error when decoding body: {}", e);
+                                hyper::Error::Status
+                            })
                         })
                         .map(move |hook| {
                             trace!("received json and will pass it around: {:?}", hook);
