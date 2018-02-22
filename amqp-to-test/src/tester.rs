@@ -95,6 +95,7 @@ fn execute_request(
 #[derive(Serialize)]
 struct ExecutionErrorReport {
     grade: usize,
+    #[serde(rename = "max-grade")]
     max_grade: usize,
     description: String,
 }
