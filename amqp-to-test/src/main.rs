@@ -4,6 +4,7 @@ extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
 extern crate futures;
+extern crate futures_cpupool;
 extern crate graders_utils;
 extern crate lapin_futures as lapin;
 #[macro_use]
@@ -47,7 +48,7 @@ fn run() -> errors::Result<()> {
         current_thread::spawn(
             receive_request
                 .map_err(|_| ())
-                .for_each(|r| future::ok(info!("Received request {:?}", r)))
+                .for_each(|r| future::ok(info!("Received request {:?}", r))),
         );
     });
     Ok(())

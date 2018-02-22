@@ -8,7 +8,7 @@ use toml;
 #[derive(Deserialize)]
 pub struct Configuration {
     pub amqp: AMQPConfiguration,
-    pub tester: TesterConfiguration
+    pub tester: TesterConfiguration,
 }
 
 pub fn load_configuration(file: &str) -> errors::Result<Configuration> {

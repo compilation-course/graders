@@ -41,7 +41,8 @@ impl GitlabHook {
 fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repository> {
     let token_for_clone = token.to_owned();
     let mut callbacks = RemoteCallbacks::new();
-    callbacks.credentials(move |_, _, _| Cred::userpass_plaintext(GITLAB_USERNAME, &token_for_clone));
+    callbacks
+        .credentials(move |_, _, _| Cred::userpass_plaintext(GITLAB_USERNAME, &token_for_clone));
     let mut fetch_options = FetchOptions::new();
     fetch_options.remote_callbacks(callbacks);
     trace!("cloning {:?} into {:?}", hook.url(), dir);
