@@ -24,6 +24,8 @@ pub struct AMQPRequest {
     pub zip_url: String,
     pub result_queue: String,
     pub opaque: String,
+    /// The delivery tag will be set upon message reception
+    pub delivery_tag: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -31,6 +33,9 @@ pub struct AMQPResponse {
     pub step: String,
     pub opaque: String,
     pub yaml_result: String,
+    /// The delivery tag and result queue will be removed before message emission
+    pub result_queue: String,
+    pub delivery_tag: u64,
 }
 
 pub fn create_client(

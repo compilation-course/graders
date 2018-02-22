@@ -92,6 +92,8 @@ fn execute_request(
                 step: request.step,
                 opaque: request.opaque,
                 yaml_result: yaml,
+                result_queue: request.result_queue,
+                delivery_tag: request.delivery_tag.unwrap(),
             }),
     )
 }
