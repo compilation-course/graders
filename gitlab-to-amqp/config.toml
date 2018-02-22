@@ -4,6 +4,7 @@ port = 80
 base_url = "http://antinea.enst.fr"
 
 [gitlab]
+base_url = "https://gitlab.telecom-paristech.fr/"
 token = "230348294383984f"
 
 [package]

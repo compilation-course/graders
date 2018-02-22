@@ -28,6 +28,8 @@ pub struct ServerConfiguration {
 #[derive(Clone, Deserialize)]
 pub struct GitlabConfiguration {
     pub token: String,
+    #[serde(with = "url_serde")]
+    pub base_url: Url,
 }
 
 #[derive(Clone, Deserialize)]
