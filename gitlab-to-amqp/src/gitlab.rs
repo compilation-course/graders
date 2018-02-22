@@ -14,6 +14,9 @@ use std::path::Path;
 use std::sync::Arc;
 use url::Url;
 
+static GITLAB_USERNAME: &str = "grader";
+static RESULT_QUEUE: &str = "gitlab";
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabRepository {
     name: String,
@@ -38,7 +41,7 @@ impl GitlabHook {
 fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repository> {
     let token_for_clone = token.to_owned();
     let mut callbacks = RemoteCallbacks::new();
-    callbacks.credentials(move |_, _, _| Cred::userpass_plaintext("grader", &token_for_clone));
+    callbacks.credentials(move |_, _, _| Cred::userpass_plaintext(GITLAB_USERNAME, &token_for_clone));
     let mut fetch_options = FetchOptions::new();
     fetch_options.remote_callbacks(callbacks);
     trace!("cloning {:?} into {:?}", hook.url(), dir);
@@ -103,7 +106,7 @@ fn labs_result_to_stream(
                 .join(&zip)
                 .unwrap()
                 .to_string(),
-            result_queue: "gitlab".to_owned(),
+            result_queue: RESULT_QUEUE.to_owned(),
             opaque: serde_json::to_string(&hook).unwrap(),
         }
     })))
