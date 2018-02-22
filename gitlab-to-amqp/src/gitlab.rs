@@ -109,6 +109,7 @@ fn labs_result_to_stream(
                 .to_string(),
             result_queue: RESULT_QUEUE.to_owned(),
             opaque: serde_json::to_string(&hook).unwrap(),
+            delivery_tag: None,
         }
     })))
 }
