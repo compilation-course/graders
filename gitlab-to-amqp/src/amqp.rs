@@ -24,7 +24,7 @@ fn amqp_publisher(
         receive_request
             .then(move |req| {
                 let req = req.unwrap();
-                trace!("handling incoming AMQP publishing request: {:?}", req);
+                trace!("publishing AMQP job request: {:?}", req);
                 channel.basic_publish(
                     &config.amqp.exchange,
                     &config.amqp.routing_key,
@@ -81,10 +81,14 @@ fn amqp_receiver(
                     });
                 send_response
                     .sink_map_err(|e| {
+                        warn!("sink error: {}", e);
                         io::Error::new(io::ErrorKind::Other, format!("sink error: {}", e))
                     })
                     .send_all(data)
-                    .map(|_| ())
+                    .map(|_| {
+                        warn!("terminating listening onto the {} queue", gitlab::RESULT_QUEUE);
+                        ()
+                    })
             }),
     )
 }
