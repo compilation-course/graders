@@ -1,4 +1,6 @@
 extern crate env_logger;
+#[macro_use]
+extern crate error_chain;
 extern crate graders_utils;
 #[macro_use]
 extern crate log;
@@ -10,8 +12,10 @@ extern crate serde_yaml;
 extern crate structopt;
 
 mod commands;
+mod errors;
 mod outputs;
 
+use errors::{Error, ErrorKind::*};
 use graders_utils::ziputils::unzip;
 use mktemp::Temp;
 use std::path::{Path, PathBuf};
@@ -64,19 +68,19 @@ fn main() {
             match unzip(&tmp.to_path_buf(), &opt.src) {
                 Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
                 Err(e) => {
-                    outputs::write_error(&opt, format!("cannot extract zip file: {}", e));
+                    outputs::write_error(&opt, &Error::with_chain(e, ZipExtractError));
                     return;
                 }
             }
         } else {
             error!("unknown repository source {}", opt.src);
-            outputs::write_error(&opt, format!("unknown repository source {}", opt.src));
+            outputs::write_error(&opt, &UnknownRepositorySource(opt.src.clone()).into());
             return;
         }
     }
     let dtiger = Path::new(&opt.src).join("src/driver/dtiger");
     match commands::build(&opt).and_then(|_| commands::run_test(&opt, &dtiger)) {
         Ok(output) => outputs::write_output(&opt, &output),
-        Err(s) => outputs::write_error(&opt, s),
+        Err(e) => outputs::write_error(&opt, &e),
     }
 }

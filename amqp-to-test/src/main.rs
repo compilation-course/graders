@@ -23,6 +23,7 @@ mod tester;
 
 use clap::App;
 use config::Configuration;
+use futures::Future;
 use futures::sync::mpsc;
 use std::sync::Arc;
 use tokio::executor::current_thread;
@@ -46,8 +47,16 @@ fn run() -> errors::Result<()> {
     let executor = tester::start_executor(&config, receive_request, send_response);
     let amqp_process = amqp::amqp_process(&config, send_request, receive_response);
     current_thread::run(|_| {
-        current_thread::spawn(amqp_process);
-        current_thread::spawn(executor);
+        current_thread::spawn(
+            amqp_process
+                .from_err::<errors::Error>()
+                .join(executor.then(|_| bail!("error in executor")))
+                .map(|(_, _): ((), ())| ())
+                .map_err(|e| {
+                    error!("fatal error: {}", e);
+                    ()
+                }),
+        );
     });
     Ok(())
 }

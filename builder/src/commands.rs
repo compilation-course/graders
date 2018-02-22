@@ -1,8 +1,9 @@
+use errors::{ErrorKind::RunError, Result};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use super::Opt;
 
-pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, String> {
+pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String> {
     info!(
         "executing {:?} with test source {:?} on executable {:?}",
         opt.test_command, opt.test_file, dtiger
@@ -31,18 +32,17 @@ pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, String> {
             "received status code {:?} when running tests",
             output.status.code()
         );
-        Err(format!(
-            "fatal error while running tests: {:?}",
-            output.stderr
+        bail!(RunError(
+            String::from_utf8_lossy(&output.stderr).to_string()
         ))
     }
 }
 
-fn exec(opt: &Opt, command: &str) -> Result<(), String> {
+fn exec(opt: &Opt, command: &str) -> Result<()> {
     exec_args(opt, command, &[])
 }
 
-fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), String> {
+fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<()> {
     info!("executing {} with args {:?}", command, args);
     let output = Command::new(command)
         .args(args)
@@ -60,15 +60,15 @@ fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), String> {
     if output.status.code() == Some(0) {
         Ok(())
     } else {
-        Err(String::from_utf8_lossy(&output.stderr).into_owned())
+        bail!(String::from_utf8_lossy(&output.stderr).to_string())
     }
 }
 
-fn make(opt: &Opt) -> Result<(), String> {
+fn make(opt: &Opt) -> Result<()> {
     exec(opt, "make")
 }
 
-fn configure(opt: &Opt) -> Result<(), String> {
+fn configure(opt: &Opt) -> Result<()> {
     let configure = if let Some(ref d) = opt.with_llvm {
         exec_args(
             opt,
@@ -81,11 +81,11 @@ fn configure(opt: &Opt) -> Result<(), String> {
     configure.and_then(|_| make(opt))
 }
 
-fn autogen(opt: &Opt) -> Result<(), String> {
+fn autogen(opt: &Opt) -> Result<()> {
     exec(opt, "./autogen.sh").and_then(|_| configure(opt))
 }
 
-pub fn build(opt: &Opt) -> Result<(), String> {
+pub fn build(opt: &Opt) -> Result<()> {
     make(opt)
         .or_else(|_| configure(opt))
         .or_else(|_| autogen(opt))

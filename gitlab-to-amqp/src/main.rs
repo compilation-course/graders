@@ -39,6 +39,7 @@ use std::fs::File;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::Path;
+use std::process;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
@@ -69,21 +70,28 @@ fn run() -> errors::Result<()> {
     let cloned_cpu_pool = cpu_pool.clone();
     thread::spawn(move || {
         current_thread::run(|_| {
-            current_thread::spawn(gitlab::packager(
-                &cloned_config,
-                &cloned_cpu_pool,
-                receive_hook,
-                send_request,
-            ));
-            current_thread::spawn(amqp::amqp_process(
-                &cloned_config,
-                receive_request,
-                send_response,
-            ));
-            current_thread::spawn(receive_response.for_each(|response| {
+            let packager =
+                gitlab::packager(&cloned_config, &cloned_cpu_pool, receive_hook, send_request);
+            let amqp_process = amqp::amqp_process(&cloned_config, receive_request, send_response);
+            let parrot = receive_response.for_each(|response| {
                 info!("Received reponse: {:?}", response);
                 future::ok(())
-            }));
+            });
+            current_thread::spawn(
+                packager
+                    .join3(
+                        amqp_process.map_err(|e| {
+                            error!("AMQP process error: {}", e);
+                            ()
+                        }),
+                        parrot,
+                    )
+                    .map(|_| ())
+                    .map_err(|_| {
+                        error!("exiting because a fatal error occurred");
+                        process::exit(1);
+                    }),
+            );
         });
     });
     let gitlab_service = Rc::new(GitlabService::new(&cpu_pool, &config, send_hook));

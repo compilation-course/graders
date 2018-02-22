@@ -48,7 +48,7 @@ fn execute(
     let dir_on_host = config.dir_on_host.clone();
     let dir_in_docker = config.dir_in_docker.clone();
     let docker_image = config.docker_image.clone();
-    let extra_args = config.extra_args.clone().unwrap_or(vec![]);
+    let extra_args = config.extra_args.clone().unwrap_or_else(|| vec![]);
     Box::new(cpu_pool.spawn_fn(move || {
         let output = Command::new("docker")
             .arg("run")
@@ -86,7 +86,7 @@ fn execute_request(
         execute(config, &request, cpu_pool)
             .then(|result| match result {
                 Ok(y) => future::ok(y),
-                Err(e) => future::ok(yaml_error(e)),
+                Err(e) => future::ok(yaml_error(&e)),
             })
             .map(move |yaml| AMQPResponse {
                 step: request.step,
@@ -103,14 +103,14 @@ struct ExecutionErrorReport {
     grade: usize,
     #[serde(rename = "max-grade")]
     max_grade: usize,
-    description: String,
+    explanation: String,
 }
 
-fn yaml_error(error: errors::Error) -> String {
+fn yaml_error(error: &errors::Error) -> String {
     serde_yaml::to_string(&ExecutionErrorReport {
         grade: 0,
         max_grade: 1,
-        description: error.to_string(),
+        explanation: error.to_string(),
     }).unwrap()
 }
 

@@ -1,3 +1,5 @@
+use error_chain::ChainedError;
+use errors::Error;
 use serde_yaml;
 use std::fs::File;
 use std::io::{Result, Write};
@@ -30,13 +32,13 @@ pub fn write_output(opt: &Opt, output: &str) {
     }
 }
 
-pub fn write_error(opt: &Opt, message: String) {
+pub fn write_error(opt: &Opt, error: &Error) {
     write_output(
         opt,
         &serde_yaml::to_string(&Output {
             grade: 0,
             max_grade: 1,
-            explanation: message,
+            explanation: error.display_chain().to_string(),
         }).unwrap(),
     );
 }
