@@ -8,6 +8,7 @@ use lapin::types::FieldTable;
 use serde_json;
 use std::sync::Arc;
 use tokio;
+use tokio::executor::current_thread;
 use tokio::reactor::Handle;
 
 fn amqp_receiver(
@@ -15,6 +16,7 @@ fn amqp_receiver(
     config: &Arc<Configuration>,
     send_request: Sender<AMQPRequest>,
 ) -> Box<Future<Item = (), Error = ()>> {
+    let channel_clone: Channel<tokio::net::TcpStream> = channel.clone();
     Box::new(
         channel
             .basic_consume(
@@ -27,17 +29,23 @@ fn amqp_receiver(
                 error!("cannot read AMQP queue: {}", e);
                 ()
             })
-            .and_then(|stream| {
+            .and_then(move |stream| {
                 let data = stream
                     .filter_map(|msg| match String::from_utf8(msg.data) {
-                        Ok(s) => Some(s),
+                        Ok(s) => Some((s, msg.delivery_tag)),
                         Err(e) => {
                             error!("cannot decode message: {}", e);
                             None
                         }
                     })
-                    .filter_map(|s| match serde_json::from_str(&s) {
-                        Ok(request) => Some(request),
+                    .filter_map(move |(s, tag)| match serde_json::from_str(&s) {
+                        Ok(request) => {
+                            current_thread::spawn(channel_clone.basic_ack(tag).map_err(|e| {
+                                warn!("unable to ack message: {}", e);
+                                ()
+                            }));
+                            Some(request)
+                        }
                         Err(e) => {
                             error!("unable to decode {} as AMQPRequest: {}", s, e);
                             None
