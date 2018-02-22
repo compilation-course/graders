@@ -10,6 +10,7 @@ use std::collections::btree_map::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
+use tokio::executor::current_thread;
 
 #[derive(Deserialize)]
 pub struct TesterConfiguration {
@@ -118,13 +119,16 @@ pub fn start_executor(
     let config = config.clone();
     Box::new(receive_request.for_each(move |request| {
         let send_response = send_response.clone();
-        execute_request(&config.tester, request, &cpu_pool)
-            .and_then(move |response| {
-                send_response.send(response).map_err(|e| {
-                    error!("unable to send AMQPResponse to queue: {}", e);
-                    ()
+        current_thread::spawn(
+            execute_request(&config.tester, request, &cpu_pool)
+                .and_then(move |response| {
+                    send_response.send(response).map_err(|e| {
+                        error!("unable to send AMQPResponse to queue: {}", e);
+                        ()
+                    })
                 })
-            })
-            .map(|_| ())
+                .map(|_| ()),
+        );
+        future::ok(())
     }))
 }
