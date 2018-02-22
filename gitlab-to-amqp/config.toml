@@ -27,6 +27,7 @@ dir_on_host = "/home/sam/Enseignement/compilation/dragon-tiger/tests/labs"
 dir_in_docker = "/labs"
 parallelism = 1
 program = "test.py"
+extra_args = ["--with-llvm=/usr/lib/llvm-3.9"]
 
 [tester.test_files]
 
@@ -34,4 +35,4 @@ program = "test.py"
 file = "lab2/lab2.yaml"
 
 [tester.test_files.lab3]
-file = "lab2/lab2.yaml"
+file = "lab3/lab3.yaml"
