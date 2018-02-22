@@ -64,6 +64,7 @@ fn run() -> errors::Result<()> {
     let cpu_pool = CpuPool::new(config.package.threads);
     let (send_hook, receive_hook) = mpsc::channel(16);
     let (send_request, receive_request) = mpsc::channel(16);
+    let (send_response, receive_response) = mpsc::channel(16);
     let cloned_config = config.clone();
     let cloned_cpu_pool = cpu_pool.clone();
     thread::spawn(move || {
@@ -74,7 +75,15 @@ fn run() -> errors::Result<()> {
                 receive_hook,
                 send_request,
             ));
-            current_thread::spawn(amqp::amqp_process(&cloned_config, receive_request));
+            current_thread::spawn(amqp::amqp_process(
+                &cloned_config,
+                receive_request,
+                send_response,
+            ));
+            current_thread::spawn(receive_response.for_each(|response| {
+                info!("Received reponse: {:?}", response);
+                future::ok(())
+            }));
         });
     });
     let gitlab_service = Rc::new(GitlabService::new(&cpu_pool, &config, send_hook));

@@ -15,7 +15,7 @@ use std::sync::Arc;
 use url::Url;
 
 static GITLAB_USERNAME: &str = "grader";
-static RESULT_QUEUE: &str = "gitlab";
+pub static RESULT_QUEUE: &str = "gitlab";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabRepository {
