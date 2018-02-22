@@ -49,7 +49,9 @@ fn execute(
     let dir_in_docker = config.dir_in_docker.clone();
     let docker_image = config.docker_image.clone();
     let extra_args = config.extra_args.clone().unwrap_or_else(|| vec![]);
+    let step = request.step.clone();
     Box::new(cpu_pool.spawn_fn(move || {
+        info!("starting docker command for step {}", step);
         let output = Command::new("docker")
             .arg("run")
             .arg("--rm")
@@ -68,8 +70,10 @@ fn execute(
             .output()
             .chain_err(|| ExecutionError("cannot run command".to_owned()))?;
         if output.status.code() == Some(0) {
+            trace!("docker command for step {} finished succesfully", step);
             Ok(String::from_utf8_lossy(&output.stdout).to_string())
         } else {
+            warn!("docker command for step {} finished with an error", step);
             Err(ExecutionError(String::from_utf8_lossy(&output.stderr).to_string()).into())
         }
     }))
@@ -123,6 +127,7 @@ pub fn start_executor(
     let cpu_pool = CpuPool::new(config.tester.parallelism);
     let config = config.clone();
     Box::new(receive_request.for_each(move |request| {
+        trace!("received request {:?}", request);
         let send_response = send_response.clone();
         current_thread::spawn(
             execute_request(&config.tester, request, &cpu_pool)
