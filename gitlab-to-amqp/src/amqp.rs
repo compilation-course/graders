@@ -62,6 +62,7 @@ fn amqp_receiver(
                 )
             })
             .and_then(move |stream| {
+                info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
                 let data = stream
                     .and_then(move |msg| channel_clone.basic_ack(msg.delivery_tag).map(|_| msg))
                     .filter_map(|msg| match String::from_utf8(msg.data) {
