@@ -18,17 +18,18 @@ static GITLAB_USERNAME: &str = "grader";
 pub static RESULT_QUEUE: &str = "gitlab";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct GitlabRepository {
-    git_http_url: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabHook {
     object_kind: String,
     checkout_sha: String,
+    project_id: u32,
     #[serde(rename = "ref")]
     ref_: String,
     repository: GitlabRepository,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GitlabRepository {
+    git_http_url: String,
 }
 
 impl GitlabHook {
