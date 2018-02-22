@@ -7,6 +7,7 @@ extern crate futures;
 extern crate futures_cpupool;
 extern crate git2;
 extern crate graders_utils;
+#[macro_use]
 extern crate hyper;
 extern crate lapin_futures as lapin;
 #[macro_use]

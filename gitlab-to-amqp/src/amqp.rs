@@ -86,7 +86,10 @@ fn amqp_receiver(
                     })
                     .send_all(data)
                     .map(|_| {
-                        warn!("terminating listening onto the {} queue", gitlab::RESULT_QUEUE);
+                        warn!(
+                            "terminating listening onto the {} queue",
+                            gitlab::RESULT_QUEUE
+                        );
                         ()
                     })
             }),

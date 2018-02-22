@@ -1,3 +1,5 @@
+pub mod api;
+
 use config::Configuration;
 use errors;
 use futures::{Future, Sink};
