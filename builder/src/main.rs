@@ -15,7 +15,8 @@ mod commands;
 mod errors;
 mod outputs;
 
-use errors::{Error, ErrorKind::*};
+use errors::Error;
+use errors::ErrorKind::*;
 use graders_utils::ziputils::unzip;
 use mktemp::Temp;
 use std::path::{Path, PathBuf};

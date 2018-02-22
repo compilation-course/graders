@@ -1,4 +1,5 @@
-use errors::{ErrorKind::RunError, Result};
+use errors::ErrorKind::RunError;
+use errors::Result;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use super::Opt;
