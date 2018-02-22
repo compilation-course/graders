@@ -13,10 +13,11 @@ fn base_api(config: &GitlabConfiguration) -> Url {
 header! { (PrivateToken, "PrivateToken") => [String] }
 
 fn make_post<I, K, V>(config: &GitlabConfiguration, fragment: &str, params: I) -> Request
-where I: IntoIterator,
-      I::Item: Borrow<(K, V)>,
-      K: AsRef<str>,
-      V: AsRef<str>,
+where
+    I: IntoIterator,
+    I::Item: Borrow<(K, V)>,
+    K: AsRef<str>,
+    V: AsRef<str>,
 {
     let uri = base_api(config).join(fragment).unwrap();
     let params = form_urlencoded::Serializer::new(String::new())
@@ -32,18 +33,26 @@ where I: IntoIterator,
 }
 
 pub enum State {
-    Pending, Running, Success, Failed, Canceled
+    Pending,
+    Running,
+    Success,
+    Failed,
+    Canceled,
 }
 
 impl fmt::Display for State {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match *self {
-            State::Pending  => "pending",
-            State::Running  => "running",
-            State::Success  => "success",
-            State::Failed   => "failed",
-            State::Canceled => "canceled",
-        })
+        write!(
+            f,
+            "{}",
+            match *self {
+                State::Pending => "pending",
+                State::Running => "running",
+                State::Success => "success",
+                State::Failed => "failed",
+                State::Canceled => "canceled",
+            }
+        )
     }
 }
 
@@ -70,5 +79,16 @@ pub fn post_status(
             hook.project_id, hook.checkout_sha
         ),
         &params,
+    )
+}
+
+pub fn post_comment(config: &GitlabConfiguration, hook: &GitlabHook, note: &str) -> Request {
+    make_post(
+        config,
+        &format!(
+            "/projects/{}/repository/commits/{}/comments",
+            hook.project_id, hook.checkout_sha
+        ),
+        &vec![("note", note)],
     )
 }
