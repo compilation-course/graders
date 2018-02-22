@@ -19,7 +19,6 @@ pub static RESULT_QUEUE: &str = "gitlab";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabRepository {
-    name: String,
     git_http_url: String,
 }
 
