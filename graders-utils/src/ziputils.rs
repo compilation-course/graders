@@ -12,7 +12,6 @@ pub fn unzip(dir: &PathBuf, zip_file: &str) -> Result<PathBuf> {
     if zip_file.starts_with("http://") || zip_file.starts_with("https://") {
         return unzip_url(dir, zip_file);
     }
-    trace!("opening {}", zip_file);
     let reader = File::open(zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     for i in 0..zip.len() {
@@ -30,10 +29,8 @@ pub fn unzip(dir: &PathBuf, zip_file: &str) -> Result<PathBuf> {
         }
         let target_file = dir.join(name);
         if target_file.to_str().unwrap().ends_with('/') {
-            trace!("creating directory {:?}", target_file);
             fs::create_dir(&target_file)?;
         } else {
-            trace!("creating file {:?}", target_file);
             let mut target = File::create(target_file)?;
             io::copy(&mut file, &mut target)?;
             let mut perms = target.metadata()?.permissions();
@@ -66,19 +63,12 @@ fn unzip_url(dir: &PathBuf, url: &str) -> Result<PathBuf> {
 
 /// Recursively build zip while setting the top level name
 pub fn zip_recursive(dir: &Path, top_level: &Path, zip_file: &Path) -> Result<()> {
-    trace!(
-        "in zip_recursive({:?}, {:?}, {:?}",
-        dir,
-        top_level,
-        zip_file
-    );
     let writer = File::create(zip_file)?;
     let mut zip = ZipWriter::new(writer);
     add_to_zip(&mut zip, &dir.to_owned(), &Path::new(top_level).to_owned())
 }
 
 fn add_to_zip(zip_file: &mut ZipWriter<File>, dir: &PathBuf, dir_in_zip: &PathBuf) -> Result<()> {
-    trace!("in add_to_zip(FILE, {:?}, {:?})", dir, dir_in_zip);
     zip_file.add_directory(
         format!("{}/", dir_in_zip.to_string_lossy()),
         FileOptions::default(),
@@ -89,7 +79,6 @@ fn add_to_zip(zip_file: &mut ZipWriter<File>, dir: &PathBuf, dir_in_zip: &PathBu
         let metadata = full_path.metadata()?;
         let file_name = path.file_name().unwrap().to_string_lossy();
         let zip_path = dir_in_zip.join(&*file_name);
-        trace!("considering {:?} as {:?}", full_path, zip_path);
         if metadata.is_dir() {
             add_to_zip(zip_file, &full_path, &zip_path)?;
         } else if metadata.is_file() {
