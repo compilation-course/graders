@@ -57,7 +57,7 @@ There has been an error during the test for {}:
         .filter(|group| group.grade != group.max_grade)
         .map(|group| {
             let tests = if group.grade != 0 {
-                let mut explanation = "Failed tests:\n\n".to_owned();
+                let mut explanation = "Failing tests:\n\n".to_owned();
                 explanation.push_str(&group
                     .tests
                     .iter()
@@ -79,29 +79,21 @@ There has been an error during the test for {}:
             } else {
                 String::new()
             };
-            let mut grade = format!("{}/{}", group.grade, group.max_grade);
-            if group.grade != group.max_grade {
-                grade = format!("**{}**", grade);
-            }
             format!(
                 "### {} ({})\n\n{}\n",
                 group
                     .description
                     .clone()
                     .unwrap_or("*Test group*".to_owned()),
-                grade,
+                pass_fail(group.grade, group.max_grade),
                 tests
             )
         })
         .collect::<Vec<_>>()
         .join("\n");
-    let mut grade = format!("{}/{}", report.grade, report.max_grade);
-    if report.grade != report.max_grade {
-        grade = format!("**{}**", grade);
-    }
     let diagnostic = format!(
         "## Failed tests reports for {} ({})\n\n{}",
-        step, grade, groups
+        step, pass_fail(report.grade, report.max_grade), groups
     );
     Ok((diagnostic, report.grade, report.max_grade))
 }
@@ -136,4 +128,16 @@ pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Resu
         let comment = api::post_comment(&config.gitlab, &hook, &report);
         vec![status, comment]
     })
+}
+
+fn pass_fail(grade: usize, max_grade: usize) -> String {
+    if grade > max_grade {
+        format!("{} passing out of {} [!]", grade, max_grade)
+    } else if grade == max_grade {
+        format!("all {} passing", max_grade)
+    } else if grade == 0 {
+        format!("all {} failing", max_grade)
+    } else {
+        format!("{} passing, {} failing", grade, max_grade - grade)
+    }
 }
