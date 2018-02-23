@@ -106,12 +106,8 @@ There has been an error during the test for {}:
     Ok((diagnostic, report.grade, report.max_grade))
 }
 
-pub fn response_to_post(
-    config: &Configuration,
-    response: &AMQPResponse,
-) -> Result<Vec<Request>> {
-    let (report, grade, max_grade) =
-        yaml_to_markdown(&response.step, &response.yaml_result)?;
+pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Result<Vec<Request>> {
+    let (report, grade, max_grade) = yaml_to_markdown(&response.step, &response.yaml_result)?;
     let hook = serde_json::from_str(&response.opaque)?;
     let state = if grade == max_grade {
         State::Success
@@ -141,4 +137,3 @@ pub fn response_to_post(
         vec![status, comment]
     })
 }
-

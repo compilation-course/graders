@@ -11,6 +11,8 @@ use git2::build::{CheckoutBuilder, RepoBuilder};
 use graders_utils::amqputils::AMQPRequest;
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
+use poster;
+use self::api::State;
 use serde_json;
 use std::path::Path;
 use std::sync::Arc;
@@ -70,7 +72,11 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
     Ok(repo)
 }
 
-fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<(String, String)>> {
+fn package(
+    config: &Configuration,
+    hook: &GitlabHook,
+    cpu_pool: &CpuPool,
+) -> errors::Result<Vec<(String, String)>> {
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
     let _repo = clone(&config.gitlab.token, hook, &root)?;
@@ -80,12 +86,36 @@ fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<(Str
     for step in &config.labs.steps {
         let path = root.join(&step).join(dir);
         if path.is_dir() {
+            poster::post(
+                cpu_pool,
+                api::post_status(
+                    &config.gitlab,
+                    &hook,
+                    &State::Running,
+                    Some(&hook.ref_),
+                    &step,
+                    None,
+                ),
+            );
             trace!("packaging step {} from {:?}", step, path);
             let zip_basename = format!("{}-{}.zip", step, hook.checkout_sha);
             let zip_file = zip_dir.join(&zip_basename);
             match zip_recursive(&path, dir, &zip_file) {
                 Ok(_) => to_test.push((step.to_owned(), zip_basename)),
-                Err(e) => error!("cannot package {:?} (step {}): {}", hook.url(), step, e),
+                Err(e) => {
+                    error!("cannot package {:?} (step {}): {}", hook.url(), step, e);
+                    poster::post(
+                        cpu_pool,
+                        api::post_status(
+                            &config.gitlab,
+                            &hook,
+                            &State::Failed,
+                            Some(&hook.ref_),
+                            &step,
+                            Some("unable to package compiler"),
+                        ),
+                    );
+                }
             }
         }
     }
@@ -133,8 +163,11 @@ pub fn packager(
                         let clone_hook = hook.clone();
                         let base_url = config.server.base_url.clone();
                         let config = config.clone();
+                        let cpu_pool_clone = cpu_pool.clone();
                         cpu_pool
-                            .spawn_fn(move || package(&config, &clone_hook).map_err(|_| ()))
+                            .spawn_fn(move || {
+                                package(&config, &clone_hook, &cpu_pool_clone).map_err(|_| ())
+                            })
                             .map(move |labs| labs_result_to_stream(&base_url, &hook, labs))
                     })
                     .flatten(),
