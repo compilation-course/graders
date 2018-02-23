@@ -124,7 +124,7 @@ fn package(
             }
         }
     }
-    info!("to test: {:?}", to_test);
+    debug!("to test: {:?}", to_test);
     Ok(to_test)
 }
 
