@@ -138,6 +138,6 @@ fn pass_fail(grade: usize, max_grade: usize) -> String {
     } else if grade == 0 {
         format!("all {} failing", max_grade)
     } else {
-        format!("{} passing, {} failing", grade, max_grade - grade)
+        format!("{} failing out of {}", grade, max_grade)
     }
 }
