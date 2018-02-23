@@ -95,10 +95,10 @@ fn package(
                 cpu_pool,
                 api::post_status(
                     &config.gitlab,
-                    &hook,
+                    hook,
                     &State::Running,
                     Some(&hook.ref_),
-                    &step,
+                    step,
                     Some("packaging and testing"),
                 ),
             );
@@ -113,10 +113,10 @@ fn package(
                         cpu_pool,
                         api::post_status(
                             &config.gitlab,
-                            &hook,
+                            hook,
                             &State::Failed,
                             Some(&hook.ref_),
-                            &step,
+                            step,
                             Some("unable to package compiler"),
                         ),
                     );
@@ -138,8 +138,8 @@ fn labs_result_to_stream(
     Box::new(stream::iter_ok(labs.into_iter().map(move |(step, zip)| {
         AMQPRequest {
             job_name: format!(
-                "[gitlab:{}:{}:{}:{}]",
-                &hook.repository.name, &hook.repository.homepage, &hook.ref_, &hook.checkout_sha
+                "[gitlab:{}:{}:{}:{}:{}]",
+                &hook.repository.name, &hook.repository.homepage, &hook.ref_, &hook.checkout_sha, &step
             ),
             step: step,
             zip_url: base_url

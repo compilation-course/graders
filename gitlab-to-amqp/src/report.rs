@@ -52,7 +52,7 @@ There has been an error during the test for {}:
     }
     let groups = report
         .groups
-        .unwrap_or(vec![])
+        .unwrap_or_else(|| vec![])
         .iter()
         .filter(|group| group.grade != group.max_grade)
         .map(|group| {
@@ -84,7 +84,7 @@ There has been an error during the test for {}:
                 group
                     .description
                     .clone()
-                    .unwrap_or("*Test group*".to_owned()),
+                    .unwrap_or_else(|| "*Test group*".to_owned()),
                 pass_fail(group.grade, group.max_grade),
                 tests
             )
