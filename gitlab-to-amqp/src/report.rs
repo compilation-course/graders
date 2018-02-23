@@ -47,9 +47,13 @@ pub fn yaml_to_markdown(step: &str, yaml: &str) -> Result<String> {
                 .iter()
                 .map(|test| {
                     format!(
-                        "- {} (coefficient {}): {}",
+                        "- {}{}: {}",
                         &test.description,
-                        test.coefficient,
+                        if test.coefficient != 1 {
+                           format!(" (coefficient {})", test.coefficient)
+                        } else {
+                            "".to_owned()
+                        },
                         if test.success {
                             "success"
                         } else {
