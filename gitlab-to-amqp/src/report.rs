@@ -49,23 +49,20 @@ There has been an error during the test for {}:
         .groups
         .unwrap_or(vec![])
         .iter()
+        .filter(|group| group.grade != group.max_grade)
         .map(|group| {
             let tests = group
                 .tests
                 .iter()
+                .filter(|test| !test.success)
                 .map(|test| {
                     format!(
-                        "- {}{}: {}",
+                        "- {}{}",
                         &test.description,
                         if test.coefficient != 1 {
                             format!(" (coefficient {})", test.coefficient)
                         } else {
                             "".to_owned()
-                        },
-                        if test.success {
-                            "success"
-                        } else {
-                            "**failure**"
                         }
                     )
                 })
@@ -76,7 +73,7 @@ There has been an error during the test for {}:
                 grade = format!("**{}**", grade);
             }
             format!(
-                "### {} ({})\n\n{}\n",
+                "### {} ({})\n\nFailed tests:\n\n{}\n",
                 group
                     .description
                     .clone()
@@ -91,6 +88,9 @@ There has been an error during the test for {}:
     if report.grade != report.max_grade {
         grade = format!("**{}**", grade);
     }
-    let diagnostic = format!("## Report for {} ({})\n\n{}", step, grade, groups);
+    let diagnostic = format!(
+        "## Failed tests reports for {} ({})\n\n{}",
+        step, grade, groups
+    );
     Ok((diagnostic, report.grade, report.max_grade))
 }

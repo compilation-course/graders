@@ -32,6 +32,7 @@ where
     req
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum State {
     Pending,
     Running,

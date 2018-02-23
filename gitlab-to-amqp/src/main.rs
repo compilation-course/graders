@@ -59,21 +59,33 @@ fn response_to_post(
     let (report, grade, max_grade) =
         report::yaml_to_markdown(&response.step, &response.yaml_result)?;
     let hook = serde_json::from_str(&response.opaque)?;
-    let result = if grade == max_grade {
+    let state = if grade == max_grade {
         gitlab::api::State::Success
     } else {
         gitlab::api::State::Failed
     };
-    let comment = gitlab::api::post_comment(&config.gitlab, &hook, &report);
     let status = gitlab::api::post_status(
         &config.gitlab,
         &hook,
-        &result,
+        &state,
         Some(&hook.ref_),
         &response.step,
         Some(&format!("grade: {}/{}", grade, max_grade)),
     );
-    Ok(vec![comment, status])
+    Ok(if state == gitlab::api::State::Success {
+        trace!(
+            "tests for {} are a success, generating status only",
+            &response.step
+        );
+        vec![status]
+    } else {
+        trace!(
+            "tests for {} are a failure, generating status and comment",
+            &response.step
+        );
+        let comment = gitlab::api::post_comment(&config.gitlab, &hook, &report);
+        vec![status, comment]
+    })
 }
 
 fn run() -> errors::Result<()> {
