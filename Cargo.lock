@@ -392,6 +392,7 @@ dependencies = [
  "serde_json 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_yaml 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tokio-core 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "toml 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",

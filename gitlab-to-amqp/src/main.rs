@@ -18,6 +18,7 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate serde_yaml;
 extern crate tokio;
+extern crate tokio_core;
 extern crate toml;
 extern crate url;
 extern crate url_serde;
@@ -26,6 +27,7 @@ mod amqp;
 mod config;
 mod errors;
 mod gitlab;
+mod poster;
 mod report;
 mod web;
 
@@ -34,6 +36,8 @@ use config::Configuration;
 use futures::*;
 use futures::sync::mpsc;
 use futures_cpupool::CpuPool;
+use graders_utils::amqputils::AMQPResponse;
+use hyper::Request;
 use std::process;
 use std::sync::Arc;
 use std::thread;
@@ -45,6 +49,12 @@ fn configuration() -> errors::Result<Configuration> {
     let config = config::load_configuration(matches.value_of("config").unwrap())?;
     config::setup_dirs(&config)?;
     Ok(config)
+}
+
+fn response_to_post(config: &Configuration, response: &AMQPResponse) -> errors::Result<Request> {
+    let report = report::yaml_to_markdown(&response.step, &response.yaml_result)?;
+    let hook = serde_json::from_str(&response.opaque)?;
+    Ok(gitlab::api::post_comment(&config.gitlab, &hook, &report))
 }
 
 fn run() -> errors::Result<()> {
@@ -60,12 +70,12 @@ fn run() -> errors::Result<()> {
             let packager =
                 gitlab::packager(&cloned_config, &cloned_cpu_pool, receive_hook, send_request);
             let amqp_process = amqp::amqp_process(&cloned_config, receive_request, send_response);
-            let parrot = receive_response.for_each(|response| {
-                info!("Received reponse: {:?}", response);
-                info!(
-                    "Report would look like: {:?}",
-                    report::yaml_to_markdown(&response.step, &response.yaml_result)
-                );
+            let parrot = receive_response.for_each(move |response| {
+                trace!("Received reponse: {:?}", response);
+                match response_to_post(&cloned_config, &response) {
+                    Ok(rq) => poster::post(&cloned_cpu_pool, rq),
+                    Err(e) => error!("could not build response to post: {}", e),
+                }
                 future::ok(())
             });
             current_thread::spawn(
