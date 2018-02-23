@@ -92,7 +92,7 @@ There has been an error during the test for {}:
         .collect::<Vec<_>>()
         .join("\n");
     let diagnostic = format!(
-        "## Failed tests reports for {} ({})\n\n{}",
+        "## Failed tests report for {} ({})\n\n{}",
         step, pass_fail(report.grade, report.max_grade), groups
     );
     Ok((diagnostic, report.grade, report.max_grade))
