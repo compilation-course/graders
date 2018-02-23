@@ -51,29 +51,35 @@ There has been an error during the test for {}:
         .iter()
         .filter(|group| group.grade != group.max_grade)
         .map(|group| {
-            let tests = group
-                .tests
-                .iter()
-                .filter(|test| !test.success)
-                .map(|test| {
-                    format!(
-                        "- {}{}",
-                        &test.description,
-                        if test.coefficient != 1 {
-                            format!(" (coefficient {})", test.coefficient)
-                        } else {
-                            "".to_owned()
-                        }
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\n");
+            let tests = if group.grade != 0 {
+                let mut explanation = "Failed tests:\n\n".to_owned();
+                explanation.push_str(&group
+                    .tests
+                    .iter()
+                    .filter(|test| !test.success)
+                    .map(|test| {
+                        format!(
+                            "- {}{}",
+                            &test.description,
+                            if test.coefficient != 1 {
+                                format!(" (coefficient {})", test.coefficient)
+                            } else {
+                                "".to_owned()
+                            }
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n"));
+                explanation
+            } else {
+                String::new()
+            };
             let mut grade = format!("{}/{}", group.grade, group.max_grade);
             if group.grade != group.max_grade {
                 grade = format!("**{}**", grade);
             }
             format!(
-                "### {} ({})\n\nFailed tests:\n\n{}\n",
+                "### {} ({})\n\n{}\n",
                 group
                     .description
                     .clone()
