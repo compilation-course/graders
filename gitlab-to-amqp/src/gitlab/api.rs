@@ -19,7 +19,7 @@ where
     K: AsRef<str>,
     V: AsRef<str>,
 {
-    let uri = base_api(config).join(fragment).unwrap();
+    let uri = base_api(config).join(&format!("api/v4/{}", fragment)).unwrap();
     let params = form_urlencoded::Serializer::new(String::new())
         .extend_pairs(params)
         .finish();
