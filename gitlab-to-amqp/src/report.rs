@@ -29,6 +29,7 @@ pub struct Test {
 pub fn yaml_to_markdown(step: &str, yaml: &str) -> Result<String> {
     let report: Report = serde_yaml::from_str(yaml)?;
     if let Some(explanation) = report.explanation {
+        warn!("problem during handling of {}: {}", step, explanation);
         return Ok(format!(
             r#"## Error
 
