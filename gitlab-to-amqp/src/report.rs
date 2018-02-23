@@ -30,11 +30,14 @@ pub fn yaml_to_markdown(step: &str, yaml: &str) -> Result<String> {
     let report: Report = serde_yaml::from_str(yaml)?;
     if let Some(explanation) = report.explanation {
         return Ok(format!(
-            r#"## There has been an error during the test
+            r#"## Error
+
+There has been an error during the test for {}:
+
 ```
 {}
 ```"#,
-            explanation
+            step, explanation
         ));
     }
     let groups = report
