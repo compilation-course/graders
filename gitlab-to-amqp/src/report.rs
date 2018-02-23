@@ -50,7 +50,7 @@ pub fn yaml_to_markdown(step: &str, yaml: &str) -> Result<String> {
                         "- {}{}: {}",
                         &test.description,
                         if test.coefficient != 1 {
-                           format!(" (coefficient {})", test.coefficient)
+                            format!(" (coefficient {})", test.coefficient)
                         } else {
                             "".to_owned()
                         },
