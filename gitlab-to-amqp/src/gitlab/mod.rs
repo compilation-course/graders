@@ -94,7 +94,7 @@ fn package(
                     &State::Running,
                     Some(&hook.ref_),
                     &step,
-                    None,
+                    Some("packaging and testing"),
                 ),
             );
             trace!("packaging step {} from {:?}", step, path);
