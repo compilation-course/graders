@@ -37,8 +37,6 @@ use config::Configuration;
 use futures::*;
 use futures::sync::mpsc;
 use futures_cpupool::CpuPool;
-use graders_utils::amqputils::AMQPResponse;
-use hyper::Request;
 use std::process;
 use std::sync::Arc;
 use std::thread;
@@ -50,42 +48,6 @@ fn configuration() -> errors::Result<Configuration> {
     let config = config::load_configuration(matches.value_of("config").unwrap())?;
     config::setup_dirs(&config)?;
     Ok(config)
-}
-
-fn response_to_post(
-    config: &Configuration,
-    response: &AMQPResponse,
-) -> errors::Result<Vec<Request>> {
-    let (report, grade, max_grade) =
-        report::yaml_to_markdown(&response.step, &response.yaml_result)?;
-    let hook = serde_json::from_str(&response.opaque)?;
-    let state = if grade == max_grade {
-        gitlab::api::State::Success
-    } else {
-        gitlab::api::State::Failed
-    };
-    let status = gitlab::api::post_status(
-        &config.gitlab,
-        &hook,
-        &state,
-        Some(&hook.ref_),
-        &response.step,
-        Some(&format!("grade: {}/{}", grade, max_grade)),
-    );
-    Ok(if state == gitlab::api::State::Success {
-        trace!(
-            "tests for {} are a success, generating status only",
-            &response.step
-        );
-        vec![status]
-    } else {
-        trace!(
-            "tests for {} are a failure, generating status and comment",
-            &response.step
-        );
-        let comment = gitlab::api::post_comment(&config.gitlab, &hook, &report);
-        vec![status, comment]
-    })
 }
 
 fn run() -> errors::Result<()> {
@@ -103,7 +65,7 @@ fn run() -> errors::Result<()> {
             let amqp_process = amqp::amqp_process(&cloned_config, receive_request, send_response);
             let parrot = receive_response.for_each(move |response| {
                 trace!("Received reponse: {:?}", response);
-                match response_to_post(&cloned_config, &response) {
+                match report::response_to_post(&cloned_config, &response) {
                     Ok(rqs) => rqs.into_iter()
                         .for_each(|rq| poster::post(&cloned_cpu_pool, rq)),
                     Err(e) => error!("could not build response to post: {}", e),
