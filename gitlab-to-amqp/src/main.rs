@@ -52,10 +52,28 @@ fn configuration() -> errors::Result<Configuration> {
     Ok(config)
 }
 
-fn response_to_post(config: &Configuration, response: &AMQPResponse) -> errors::Result<Request> {
-    let report = report::yaml_to_markdown(&response.step, &response.yaml_result)?;
+fn response_to_post(
+    config: &Configuration,
+    response: &AMQPResponse,
+) -> errors::Result<Vec<Request>> {
+    let (report, grade, max_grade) =
+        report::yaml_to_markdown(&response.step, &response.yaml_result)?;
     let hook = serde_json::from_str(&response.opaque)?;
-    Ok(gitlab::api::post_comment(&config.gitlab, &hook, &report))
+    let result = if grade == max_grade {
+        gitlab::api::State::Success
+    } else {
+        gitlab::api::State::Failed
+    };
+    let comment = gitlab::api::post_comment(&config.gitlab, &hook, &report);
+    let status = gitlab::api::post_status(
+        &config.gitlab,
+        &hook,
+        &result,
+        Some(&hook.ref_),
+        &response.step,
+        Some(&format!("grade: {}/{}", grade, max_grade)),
+    );
+    Ok(vec![comment, status])
 }
 
 fn run() -> errors::Result<()> {
@@ -74,7 +92,8 @@ fn run() -> errors::Result<()> {
             let parrot = receive_response.for_each(move |response| {
                 trace!("Received reponse: {:?}", response);
                 match response_to_post(&cloned_config, &response) {
-                    Ok(rq) => poster::post(&cloned_cpu_pool, rq),
+                    Ok(rqs) => rqs.into_iter()
+                        .for_each(|rq| poster::post(&cloned_cpu_pool, rq)),
                     Err(e) => error!("could not build response to post: {}", e),
                 }
                 future::ok(())

@@ -25,8 +25,8 @@ pub struct GitlabHook {
     checkout_sha: String,
     project_id: u32,
     #[serde(rename = "ref")]
-    ref_: String,
-    repository: GitlabRepository,
+    pub ref_: String,
+    pub repository: GitlabRepository,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

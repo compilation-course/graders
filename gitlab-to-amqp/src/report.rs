@@ -26,19 +26,23 @@ pub struct Test {
     success: bool,
 }
 
-pub fn yaml_to_markdown(step: &str, yaml: &str) -> Result<String> {
+pub fn yaml_to_markdown(step: &str, yaml: &str) -> Result<(String, usize, usize)> {
     let report: Report = serde_yaml::from_str(yaml)?;
     if let Some(explanation) = report.explanation {
         warn!("problem during handling of {}: {}", step, explanation);
-        return Ok(format!(
-            r#"## Error
+        return Ok((
+            format!(
+                r#"## Error
 
 There has been an error during the test for {}:
 
 ```
 {}
 ```"#,
-            step, explanation
+                step, explanation
+            ),
+            report.grade,
+            report.max_grade,
         ));
     }
     let groups = report
@@ -87,6 +91,6 @@ There has been an error during the test for {}:
     if report.grade != report.max_grade {
         grade = format!("**{}**", grade);
     }
-    let report = format!("## Report for {} ({})\n\n{}", step, grade, groups);
-    Ok(report)
+    let diagnostic = format!("## Report for {} ({})\n\n{}", step, grade, groups);
+    Ok((diagnostic, report.grade, report.max_grade))
 }
