@@ -19,6 +19,7 @@ pub struct AMQPConfiguration {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AMQPRequest {
+    pub job_name: String,
     pub step: String,
     pub zip_url: String,
     pub result_queue: String,
@@ -29,6 +30,7 @@ pub struct AMQPRequest {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AMQPResponse {
+    pub job_name: String,
     pub step: String,
     pub opaque: String,
     pub yaml_result: String,

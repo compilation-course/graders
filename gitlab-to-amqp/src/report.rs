@@ -93,7 +93,9 @@ There has been an error during the test for {}:
         .join("\n");
     let diagnostic = format!(
         "## Failed tests report for {} ({})\n\n{}",
-        step, pass_fail(report.grade, report.max_grade), groups
+        step,
+        pass_fail(report.grade, report.max_grade),
+        groups
     );
     Ok((diagnostic, report.grade, report.max_grade))
 }

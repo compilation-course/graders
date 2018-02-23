@@ -17,6 +17,7 @@ use serde_json;
 use std::path::Path;
 use std::sync::Arc;
 use url::Url;
+use url_serde;
 
 static GITLAB_USERNAME: &str = "grader";
 pub static RESULT_QUEUE: &str = "gitlab";
@@ -33,11 +34,15 @@ pub struct GitlabHook {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabRepository {
-    git_http_url: String,
+    name: String,
+    #[serde(with = "url_serde")]
+    homepage: Url,
+    #[serde(with = "url_serde")]
+    git_http_url: Url,
 }
 
 impl GitlabHook {
-    pub fn url(&self) -> &str {
+    pub fn url(&self) -> &Url {
         &self.repository.git_http_url
     }
 }
@@ -52,7 +57,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
     trace!("cloning {:?} into {:?}", hook.url(), dir);
     let repo = RepoBuilder::new()
         .fetch_options(fetch_options)
-        .clone(hook.url(), dir)?;
+        .clone(&hook.url().to_string(), dir)?;
     {
         let head = repo.head()?;
         trace!("current head: {}", head.shorthand().unwrap_or("<unknown>"));
@@ -132,6 +137,10 @@ fn labs_result_to_stream(
     let base_url = base_url.clone();
     Box::new(stream::iter_ok(labs.into_iter().map(move |(step, zip)| {
         AMQPRequest {
+            job_name: format!(
+                "[gitlab:{}:{}:{}:{}]",
+                &hook.repository.name, &hook.repository.homepage, &hook.ref_, &hook.checkout_sha
+            ),
             step: step,
             zip_url: base_url
                 .join("zips/")

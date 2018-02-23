@@ -93,6 +93,7 @@ fn execute_request(
                 Err(e) => future::ok(yaml_error(&e)),
             })
             .map(move |yaml| AMQPResponse {
+                job_name: request.job_name,
                 step: request.step,
                 opaque: request.opaque,
                 yaml_result: yaml,
