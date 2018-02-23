@@ -39,7 +39,7 @@ fn execute(
         Some(step) => config.dir_in_docker.join(&step.file),
         None => {
             return Box::new(future::err(
-                format!("unable to find configuration for step {}", request.step).into(),
+                format!("unable to find configuration for step {} for {}", request.step, request.job_name).into(),
             ))
         }
     };
@@ -49,9 +49,8 @@ fn execute(
     let dir_in_docker = config.dir_in_docker.clone();
     let docker_image = config.docker_image.clone();
     let extra_args = config.extra_args.clone().unwrap_or_else(|| vec![]);
-    let step = request.step.clone();
     Box::new(cpu_pool.spawn_fn(move || {
-        info!("starting docker command for step {}", step);
+        info!("starting docker command for {}", request.job_name);
         let output = Command::new("docker")
             .arg("run")
             .arg("--rm")
@@ -70,10 +69,10 @@ fn execute(
             .output()
             .chain_err(|| ExecutionError("cannot run command".to_owned()))?;
         if output.status.code() == Some(0) {
-            trace!("docker command for step {} finished succesfully", step);
+            info!("docker command for {} finished succesfully", request.job_name);
             Ok(String::from_utf8_lossy(&output.stdout).to_string())
         } else {
-            warn!("docker command for step {} finished with an error", step);
+            warn!("docker command for {} finished with an error", request.job_name);
             Err(ExecutionError(String::from_utf8_lossy(&output.stderr).to_string()).into())
         }
     }))
@@ -128,7 +127,7 @@ pub fn start_executor(
     let cpu_pool = CpuPool::new(config.tester.parallelism);
     let config = config.clone();
     Box::new(receive_request.for_each(move |request| {
-        trace!("received request {:?}", request);
+        debug!("received request {:?}", request);
         let send_response = send_response.clone();
         current_thread::spawn(
             execute_request(&config.tester, request, &cpu_pool)

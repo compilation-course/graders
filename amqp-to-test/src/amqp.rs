@@ -63,9 +63,9 @@ fn amqp_sender(
         receive_response
             .map_err(|_| io::Error::new(io::ErrorKind::Other, ""))  // Dummy
             .for_each(move |mut response| {
-                trace!(
-                    "sending response for step {} to queue {}",
-                    response.step,
+                info!(
+                    "sending response {} to queue {}",
+                    response.job_name,
                     response.result_queue
                 );
                 let queue = mem::replace(&mut response.result_queue, "".to_owned());

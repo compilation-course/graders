@@ -117,15 +117,15 @@ pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Resu
         Some(&format!("grade: {}/{}", grade, max_grade)),
     );
     Ok(if state == State::Success {
-        trace!(
+        info!(
             "tests for {} are a success, generating status only",
-            &response.step
+            &response.job_name
         );
         vec![status]
     } else {
-        trace!(
+        info!(
             "tests for {} are a failure, generating status and comment",
-            &response.step
+            &response.job_name
         );
         let comment = api::post_comment(&config.gitlab, &hook, &report);
         vec![status, comment]

@@ -24,7 +24,7 @@ fn amqp_publisher(
         receive_request
             .then(move |req| {
                 let req = req.unwrap();
-                trace!("publishing AMQP job request: {:?}", req);
+                info!("publishing AMQP job request {}", req.job_name);
                 channel.basic_publish(
                     &config.amqp.exchange,
                     &config.amqp.routing_key,
@@ -72,8 +72,11 @@ fn amqp_receiver(
                             None
                         }
                     })
-                    .filter_map(|s| match serde_json::from_str(&s) {
-                        Ok(response) => Some(response),
+                    .filter_map(|s| match serde_json::from_str::<AMQPResponse>(&s) {
+                        Ok(response) => {
+                            trace!("received response for {}", response.job_name);
+                            Some(response)
+                        }
                         Err(e) => {
                             error!("unable to decode message {} as AMQPResponse: {}", s, e);
                             None
