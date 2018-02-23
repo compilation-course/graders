@@ -75,7 +75,7 @@ pub fn post_status(
     make_post(
         config,
         &format!(
-            "/projects/{}/statuses/{}",
+            "projects/{}/statuses/{}",
             hook.project_id, hook.checkout_sha
         ),
         &params,
@@ -86,7 +86,7 @@ pub fn post_comment(config: &GitlabConfiguration, hook: &GitlabHook, note: &str)
     make_post(
         config,
         &format!(
-            "/projects/{}/repository/commits/{}/comments",
+            "projects/{}/repository/commits/{}/comments",
             hook.project_id, hook.checkout_sha
         ),
         &vec![("note", note)],
