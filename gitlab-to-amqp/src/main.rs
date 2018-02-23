@@ -16,6 +16,7 @@ extern crate mktemp;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate serde_yaml;
 extern crate tokio;
 extern crate toml;
 extern crate url;
@@ -25,6 +26,7 @@ mod amqp;
 mod config;
 mod errors;
 mod gitlab;
+mod report;
 
 use clap::App;
 use config::Configuration;
@@ -76,6 +78,10 @@ fn run() -> errors::Result<()> {
             let amqp_process = amqp::amqp_process(&cloned_config, receive_request, send_response);
             let parrot = receive_response.for_each(|response| {
                 info!("Received reponse: {:?}", response);
+                info!(
+                    "Report would look like: {:?}",
+                    report::yaml_to_markdown(&response.step, &response.yaml_result)
+                );
                 future::ok(())
             });
             current_thread::spawn(
