@@ -10,7 +10,7 @@ fn base_api(config: &GitlabConfiguration) -> Url {
     config.base_url.join("/api/v4/").unwrap()
 }
 
-header! { (PrivateToken, "PrivateToken") => [String] }
+header! { (PrivateToken, "Private-Token") => [String] }
 
 fn make_post<I, K, V>(config: &GitlabConfiguration, fragment: &str, params: I) -> Request
 where
