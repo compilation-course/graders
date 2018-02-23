@@ -9,6 +9,7 @@ extern crate git2;
 extern crate graders_utils;
 #[macro_use]
 extern crate hyper;
+extern crate hyper_tls;
 extern crate lapin_futures as lapin;
 #[macro_use]
 extern crate log;
