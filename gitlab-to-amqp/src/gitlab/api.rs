@@ -7,7 +7,7 @@ use super::GitlabHook;
 use url::{form_urlencoded, Url};
 
 fn base_api(config: &GitlabConfiguration) -> Url {
-    config.base_url.join("/api/v4/").unwrap()
+    config.base_url.join("api/v4/").unwrap()
 }
 
 header! { (PrivateToken, "Private-Token") => [String] }
@@ -19,7 +19,7 @@ where
     K: AsRef<str>,
     V: AsRef<str>,
 {
-    let uri = base_api(config).join(&format!("api/v4/{}", fragment)).unwrap();
+    let uri = base_api(config).join(fragment).unwrap();
     let params = form_urlencoded::Serializer::new(String::new())
         .extend_pairs(params)
         .finish();
