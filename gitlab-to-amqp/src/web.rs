@@ -9,7 +9,7 @@ use hyper::{Body, Error as HyperError, Method, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
 use serde_json;
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::Path;
@@ -117,7 +117,6 @@ impl Service for GitlabService {
                                 let mut content =
                                     Vec::with_capacity(zip_file.metadata()?.len() as usize);
                                 File::open(&zip_file)?.read_to_end(&mut content)?;
-                                fs::remove_file(&zip_file)?;
                                 Ok(content)
                             })
                             .map(|content| {

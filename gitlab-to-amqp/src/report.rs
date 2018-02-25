@@ -1,9 +1,9 @@
 use config::Configuration;
 use errors::Result;
+use gitlab;
 use gitlab::api::{self, State};
 use graders_utils::amqputils::AMQPResponse;
 use hyper::Request;
-use serde_json;
 use serde_yaml;
 
 #[derive(Deserialize)]
@@ -102,7 +102,11 @@ There has been an error during the test for {}:
 
 pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Result<Vec<Request>> {
     let (report, grade, max_grade) = yaml_to_markdown(&response.step, &response.yaml_result)?;
-    let hook = serde_json::from_str(&response.opaque)?;
+    let (hook, zip) = gitlab::from_opaque(&response.opaque)?;
+    match gitlab::remove_zip_file(&config, &zip) {
+        Ok(_) => (),
+        Err(e) => warn!("could not remove zip file {}: {}", zip, e),
+    }
     let state = if grade == max_grade {
         State::Success
     } else {
