@@ -18,6 +18,7 @@ use std::path::Path;
 use std::sync::Arc;
 use url::Url;
 use url_serde;
+use uuid::Uuid;
 
 static GITLAB_USERNAME: &str = "grader";
 pub static RESULT_QUEUE: &str = "gitlab";
@@ -77,6 +78,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
     Ok(repo)
 }
 
+/// Clone and package labs to test. Return a list of (step, zip base name).
 fn package(
     config: &Configuration,
     hook: &GitlabHook,
@@ -103,7 +105,7 @@ fn package(
                 ),
             );
             trace!("packaging step {} from {:?}", step, path);
-            let zip_basename = format!("{}-{}.zip", step, hook.checkout_sha);
+            let zip_basename = format!("{}.zip", Uuid::new_v4());
             let zip_file = zip_dir.join(&zip_basename);
             match zip_recursive(&path, dir, &zip_file) {
                 Ok(_) => to_test.push((step.to_owned(), zip_basename)),
