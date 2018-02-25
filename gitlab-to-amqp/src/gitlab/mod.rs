@@ -14,6 +14,8 @@ use mktemp::Temp;
 use poster;
 use self::api::State;
 use serde_json;
+use std::fs;
+use std::io;
 use std::path::Path;
 use std::sync::Arc;
 use url::Url;
@@ -155,7 +157,7 @@ fn labs_result_to_stream(
                 .unwrap()
                 .to_string(),
             result_queue: RESULT_QUEUE.to_owned(),
-            opaque: serde_json::to_string(&hook).unwrap(),
+            opaque: to_opaque(&hook, &zip),
             delivery_tag: None,
         }
     })))
@@ -189,4 +191,16 @@ pub fn packager(
             )
             .map(|_| ()),
     )
+}
+
+pub fn remove_zip_file(config: &Configuration, zip: &String) -> io::Result<()> {
+    fs::remove_file(config.package.zip_dir.join(zip))
+}
+
+pub fn to_opaque(hook: &GitlabHook, zip_file_name: &String) -> String {
+    serde_json::to_string(&(hook, zip_file_name)).unwrap()
+}
+
+pub fn from_opaque(opaque: &String) -> errors::Result<(GitlabHook, String)> {
+    Ok(serde_json::from_str(opaque)?)
 }
