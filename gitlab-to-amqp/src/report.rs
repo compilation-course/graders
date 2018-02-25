@@ -124,8 +124,8 @@ pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Resu
         vec![status]
     } else {
         info!(
-            "tests for {} are a failure, generating status and comment",
-            &response.job_name
+            "tests for {} are a failure ({}/{}), generating status and comment",
+            &response.job_name, grade, max_grade
         );
         let comment = api::post_comment(&config.gitlab, &hook, &report);
         vec![status, comment]

@@ -39,7 +39,10 @@ fn execute(
         Some(step) => config.dir_in_docker.join(&step.file),
         None => {
             return Box::new(future::err(
-                format!("unable to find configuration for step {} for {}", request.step, request.job_name).into(),
+                format!(
+                    "unable to find configuration for step {} for {}",
+                    request.step, request.job_name
+                ).into(),
             ))
         }
     };
@@ -69,10 +72,16 @@ fn execute(
             .output()
             .chain_err(|| ExecutionError("cannot run command".to_owned()))?;
         if output.status.code() == Some(0) {
-            info!("docker command for {} finished succesfully", request.job_name);
+            info!(
+                "docker command for {} finished succesfully",
+                request.job_name
+            );
             Ok(String::from_utf8_lossy(&output.stdout).to_string())
         } else {
-            warn!("docker command for {} finished with an error", request.job_name);
+            warn!(
+                "docker command for {} finished with an error",
+                request.job_name
+            );
             Err(ExecutionError(String::from_utf8_lossy(&output.stderr).to_string()).into())
         }
     }))

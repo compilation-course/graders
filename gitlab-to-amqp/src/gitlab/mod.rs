@@ -139,7 +139,11 @@ fn labs_result_to_stream(
         AMQPRequest {
             job_name: format!(
                 "[gitlab:{}:{}:{}:{}:{}]",
-                &hook.repository.name, &hook.repository.homepage, &hook.ref_, &hook.checkout_sha, &step
+                &hook.repository.name,
+                &hook.repository.homepage,
+                &hook.ref_,
+                &hook.checkout_sha,
+                &step
             ),
             step: step,
             zip_url: base_url
