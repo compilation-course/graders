@@ -23,6 +23,7 @@ extern crate tokio_core;
 extern crate toml;
 extern crate url;
 extern crate url_serde;
+extern crate uuid;
 
 mod amqp;
 mod config;
