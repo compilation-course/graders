@@ -1,5 +1,5 @@
+use serde_yaml;
 use std;
-use toml;
 
 error_chain! {
     errors {
@@ -11,6 +11,6 @@ error_chain! {
 
     foreign_links {
         Io(std::io::Error);
-        Toml(toml::de::Error);
+        Yaml(serde_yaml::Error);
     }
 }

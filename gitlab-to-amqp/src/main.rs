@@ -20,7 +20,6 @@ extern crate serde_json;
 extern crate serde_yaml;
 extern crate tokio;
 extern crate tokio_core;
-extern crate toml;
 extern crate url;
 extern crate url_serde;
 extern crate uuid;

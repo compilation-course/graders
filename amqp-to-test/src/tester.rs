@@ -17,15 +17,10 @@ pub struct TesterConfiguration {
     pub docker_image: String,
     pub dir_on_host: PathBuf,
     pub dir_in_docker: PathBuf,
-    pub program: PathBuf,
-    pub test_files: BTreeMap<String, TestConfiguration>,
-    pub parallelism: usize,
     pub extra_args: Option<Vec<String>>,
-}
-
-#[derive(Deserialize)]
-pub struct TestConfiguration {
-    pub file: PathBuf,
+    pub parallelism: usize,
+    pub program: PathBuf,
+    pub test_files: BTreeMap<String, PathBuf>,
 }
 
 /// Execute a request using docker in the given CPU pool. Return the
@@ -36,7 +31,7 @@ fn execute(
     cpu_pool: &CpuPool,
 ) -> Box<Future<Item = String, Error = errors::Error>> {
     let test_file = match config.test_files.get(&request.step) {
-        Some(step) => config.dir_in_docker.join(&step.file),
+        Some(file) => config.dir_in_docker.join(&file),
         None => {
             return Box::new(future::err(
                 format!(

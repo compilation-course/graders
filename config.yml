@@ -1,0 +1,34 @@
+server:
+  ip: "0.0.0.0"
+  port: 80
+  base_url: "https://grader.rfc1149.net/"
+
+gitlab:
+  base_url: "https://gitlab.telecom-paristech.fr/"
+  token: "abcdef0123456789"
+
+package:
+  threads: 4
+  zip_dir: "/some/path/to/zip/dir"
+
+labs:
+  steps: ["lab2", "lab3"]
+  dir: "dragon-tiger"
+
+amqp:
+  host: "antinea.enst.fr"
+  port: 5672
+  exchange: "grader"
+  routing_key: "lab"
+  queue: "jobs"
+
+tester:
+  docker_image: "rfc1149/builder"
+  dir_on_host: "/some/path/to/labs"
+  dir_in_docker: "/labs"
+  parallelism: 1
+  program: "test.py"
+  extra_args: ["--with-llvm=/usr/lib/llvm-3.9"]
+  test_files:
+    lab2: "lab2/lab2.yaml"
+    lab3: "lab3/lab3.yaml"

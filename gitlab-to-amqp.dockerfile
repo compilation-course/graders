@@ -13,4 +13,4 @@ RUN apt-get -qq update
 COPY --from=builder /tmp/builder/target/release/gitlab-to-amqp /
 EXPOSE 80
 ENTRYPOINT ["/gitlab-to-amqp"]
-CMD ["/config.toml"]
+CMD ["/config.yml"]

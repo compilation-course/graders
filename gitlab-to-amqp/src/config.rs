@@ -1,10 +1,10 @@
 use errors;
 use graders_utils::amqputils::AMQPConfiguration;
+use serde_yaml;
 use std::fs::{self, File};
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::io::Read;
-use toml;
 use url::Url;
 use url_serde;
 
@@ -48,7 +48,7 @@ pub fn load_configuration(file: &str) -> errors::Result<Configuration> {
     let mut f = File::open(file)?;
     let mut content = Vec::new();
     f.read_to_end(&mut content)?;
-    Ok(toml::de::from_slice(&content)?)
+    Ok(serde_yaml::from_slice(&content)?)
 }
 
 pub fn setup_dirs(config: &Configuration) -> errors::Result<()> {
