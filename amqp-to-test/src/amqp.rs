@@ -3,8 +3,7 @@ use futures::future::Future;
 use futures::{Sink, Stream};
 use futures::sync::mpsc::{Receiver, Sender};
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
-use lapin::channel::{BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel,
-                     QueueDeclareOptions};
+use lapin::channel::{BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel};
 use lapin::types::FieldTable;
 use serde_json;
 use std::io;
@@ -62,35 +61,26 @@ fn amqp_sender(
     let channel = channel.clone();
     Box::new(
         receive_response
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, ""))  // Dummy
-        .for_each(move |mut response| {
-            info!(
-                "sending response {} to queue {}",
-                response.job_name,
-                response.result_queue
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, ""))  // Dummy
+            .for_each(move |mut response| {
+                info!(
+                    "sending response {} to queue {}",
+                    response.job_name,
+                    response.result_queue
                 );
-            let queue = mem::replace(&mut response.result_queue, "".to_owned());
-            let queue_clone = queue.clone();
-            let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
-            let channel_clone1 = channel.clone();
-            let channel_clone2 = channel.clone();
-            channel.queue_declare(&queue, &QueueDeclareOptions {
-                durable: true,
-                ..Default::default()
-            }, &FieldTable::new()).map_err(move |e| {
-                error!("cannot create result queue {}: {}", queue_clone, e);
-                e
-            }).and_then(move |_|
-                        channel_clone1
-                        .basic_publish(
-                            "",
-                            &queue,
-                            serde_json::to_string(&response).unwrap().as_bytes(),
-                            &BasicPublishOptions::default(),
-                            BasicProperties::default(),
-                            ))
-            .and_then(move |_| channel_clone2.basic_ack(delivery_tag))
-        }),
+                let queue = mem::replace(&mut response.result_queue, "".to_owned());
+                let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
+                let channel_clone = channel.clone();
+                channel
+                    .basic_publish(
+                        "",
+                        &queue,
+                        serde_json::to_string(&response).unwrap().as_bytes(),
+                        &BasicPublishOptions::default(),
+                        BasicProperties::default(),
+                    )
+                    .and_then(move |_| channel_clone.basic_ack(delivery_tag))
+            }),
     )
 }
 
@@ -103,12 +93,13 @@ pub fn amqp_process(
     let config = config.clone();
     Box::new(
         client
-            .and_then(|client| client.create_channel().join(client.create_channel()))
-            .and_then(|(receiver_channel, sender_channel)| {
-                amqputils::declare_exchange_and_queue(&receiver_channel, &config.amqp)
-                    .and_then(move |_| amqp_receiver(&receiver_channel, &config, send_request))
-                    .join(amqp_sender(&sender_channel, receive_response))
-                    .map(|_| ())
+            .and_then(|client| client.create_channel())
+            .and_then(|channel| {
+                amqputils::declare_exchange_and_queue(&channel, &config.amqp).and_then(move |_| {
+                    amqp_receiver(&channel, &config, send_request)
+                        .join(amqp_sender(&channel, receive_response))
+                        .map(|_| ())
+                })
             }),
     )
 }
