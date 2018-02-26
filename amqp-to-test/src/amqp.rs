@@ -93,13 +93,12 @@ pub fn amqp_process(
     let config = config.clone();
     Box::new(
         client
-            .and_then(|client| client.create_channel())
-            .and_then(|channel| {
-                amqputils::declare_exchange_and_queue(&channel, &config.amqp).and_then(move |_| {
-                    amqp_receiver(&channel, &config, send_request)
-                        .join(amqp_sender(&channel, receive_response))
-                        .map(|_| ())
-                })
+            .and_then(|client| client.create_channel().join(client.create_channel()))
+            .and_then(|(receiver_channel, sender_channel)| {
+                amqputils::declare_exchange_and_queue(&receiver_channel, &config.amqp)
+                    .and_then(move |_| amqp_receiver(&receiver_channel, &config, send_request))
+                    .join(amqp_sender(&sender_channel, receive_response))
+                    .map(|_| ())
             }),
     )
 }
