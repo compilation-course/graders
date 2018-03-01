@@ -21,7 +21,7 @@ labs:
   - name: lab3-types
     base: lab3
     dir: dragon-tiger
-    witness: src/ast/type-checker.hh
+    witness: "src/ast/type_checker.hh"
 
 amqp:
   host: "antinea.enst.fr"
