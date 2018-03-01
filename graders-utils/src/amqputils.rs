@@ -20,7 +20,7 @@ pub struct AMQPConfiguration {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AMQPRequest {
     pub job_name: String,
-    pub step: String,
+    pub lab: String,
     pub zip_url: String,
     pub result_queue: String,
     pub opaque: String,
@@ -31,7 +31,7 @@ pub struct AMQPRequest {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AMQPResponse {
     pub job_name: String,
-    pub step: String,
+    pub lab: String,
     pub opaque: String,
     pub yaml_result: String,
     /// The delivery tag and result queue will be removed before message emission

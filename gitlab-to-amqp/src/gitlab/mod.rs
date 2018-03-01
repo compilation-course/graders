@@ -80,7 +80,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
     Ok(repo)
 }
 
-/// Clone and package labs to test. Return a list of (step, zip base name).
+/// Clone and package labs to test. Return a list of (lab, zip base name).
 fn package(
     config: &Configuration,
     hook: &GitlabHook,
@@ -90,11 +90,15 @@ fn package(
     let root = temp.to_path_buf();
     let _repo = clone(&config.gitlab.token, hook, &root)?;
     let zip_dir = &Path::new(&config.package.zip_dir);
-    let dir = &config.labs.dir;
     let mut to_test = Vec::new();
-    for step in &config.labs.steps {
-        let path = root.join(&step).join(dir);
-        if path.is_dir() {
+    for lab in &config.labs {
+        let path = root.join(&lab.base).join(&lab.dir);
+        if path.is_dir()
+            && lab.witness
+                .clone()
+                .map(|w| path.join(w).is_file())
+                .unwrap_or(true)
+        {
             poster::post(
                 cpu_pool,
                 api::post_status(
@@ -102,17 +106,17 @@ fn package(
                     hook,
                     &State::Running,
                     Some(&hook.ref_),
-                    step,
+                    &lab.name,
                     Some("packaging and testing"),
                 ),
             );
-            trace!("packaging step {} from {:?}", step, path);
+            trace!("packaging lab {} from {:?}", lab.name, path);
             let zip_basename = format!("{}.zip", Uuid::new_v4());
             let zip_file = zip_dir.join(&zip_basename);
-            match zip_recursive(&path, dir, &zip_file) {
-                Ok(_) => to_test.push((step.to_owned(), zip_basename)),
+            match zip_recursive(&path, &lab.dir, &zip_file) {
+                Ok(_) => to_test.push((lab.name.clone(), zip_basename)),
                 Err(e) => {
-                    error!("cannot package {:?} (step {}): {}", hook.url(), step, e);
+                    error!("cannot package {:?} (lab {}): {}", hook.url(), lab.name, e);
                     poster::post(
                         cpu_pool,
                         api::post_status(
@@ -120,7 +124,7 @@ fn package(
                             hook,
                             &State::Failed,
                             Some(&hook.ref_),
-                            step,
+                            &lab.name,
                             Some("unable to package compiler"),
                         ),
                     );
@@ -139,7 +143,7 @@ fn labs_result_to_stream(
 ) -> Box<Stream<Item = AMQPRequest, Error = ()>> {
     let hook = hook.clone();
     let base_url = base_url.clone();
-    Box::new(stream::iter_ok(labs.into_iter().map(move |(step, zip)| {
+    Box::new(stream::iter_ok(labs.into_iter().map(move |(lab, zip)| {
         AMQPRequest {
             job_name: format!(
                 "[gitlab:{}:{}:{}:{}:{}]",
@@ -147,9 +151,9 @@ fn labs_result_to_stream(
                 &hook.repository.homepage,
                 &hook.ref_,
                 &hook.checkout_sha,
-                &step
+                &lab
             ),
-            step: step,
+            lab: lab,
             zip_url: base_url
                 .join("zips/")
                 .unwrap()

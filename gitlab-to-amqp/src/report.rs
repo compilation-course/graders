@@ -31,10 +31,10 @@ pub struct Test {
     success: bool,
 }
 
-fn yaml_to_markdown(step: &str, yaml: &str) -> Result<(String, usize, usize)> {
+fn yaml_to_markdown(lab: &str, yaml: &str) -> Result<(String, usize, usize)> {
     let report: Report = serde_yaml::from_str(yaml)?;
     if let Some(explanation) = report.explanation {
-        warn!("problem during handling of {}: {}", step, explanation);
+        warn!("problem during handling of {}: {}", lab, explanation);
         return Ok((
             format!(
                 r#"## Error
@@ -44,7 +44,7 @@ There has been an error during the test for {}:
 ```
 {}
 ```"#,
-                step, explanation
+                lab, explanation
             ),
             report.grade,
             report.max_grade,
@@ -93,7 +93,7 @@ There has been an error during the test for {}:
         .join("\n");
     let diagnostic = format!(
         "## Failed tests report for {} ({})\n\n{}",
-        step,
+        lab,
         pass_fail(report.grade, report.max_grade),
         groups
     );
@@ -101,7 +101,7 @@ There has been an error during the test for {}:
 }
 
 pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Result<Vec<Request>> {
-    let (report, grade, max_grade) = yaml_to_markdown(&response.step, &response.yaml_result)?;
+    let (report, grade, max_grade) = yaml_to_markdown(&response.lab, &response.yaml_result)?;
     let (hook, zip) = gitlab::from_opaque(&response.opaque)?;
     match gitlab::remove_zip_file(&config, &zip) {
         Ok(_) => trace!("removed zip file {}", zip),
@@ -117,7 +117,7 @@ pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Resu
         &hook,
         &state,
         Some(&hook.ref_),
-        &response.step,
+        &response.lab,
         Some(&format!("grade: {}/{}", grade, max_grade)),
     );
     Ok(if state == State::Success {

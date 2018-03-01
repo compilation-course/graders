@@ -13,7 +13,7 @@ pub struct Configuration {
     pub server: ServerConfiguration,
     pub gitlab: GitlabConfiguration,
     pub package: PackageConfiguration,
-    pub labs: LabsConfiguration,
+    pub labs: Vec<LabConfiguration>,
     pub amqp: AMQPConfiguration,
 }
 
@@ -39,9 +39,11 @@ pub struct PackageConfiguration {
 }
 
 #[derive(Clone, Deserialize)]
-pub struct LabsConfiguration {
-    pub steps: Vec<String>,
+pub struct LabConfiguration {
+    pub name: String,
+    pub base: PathBuf,
     pub dir: PathBuf,
+    pub witness: Option<PathBuf>,
 }
 
 pub fn load_configuration(file: &str) -> errors::Result<Configuration> {

@@ -12,8 +12,16 @@ package:
   zip_dir: "/some/path/to/zip/dir"
 
 labs:
-  steps: ["lab2", "lab3"]
-  dir: "dragon-tiger"
+  - name: lab2
+    base: lab2
+    dir: dragon-tiger
+  - name: lab3
+    base: lab3
+    dir: dragon-tiger
+  - name: lab3-types
+    base: lab3
+    dir: dragon-tiger
+    witness: src/ast/type-checker.hh
 
 amqp:
   host: "antinea.enst.fr"
@@ -30,5 +38,6 @@ tester:
   program: "test.py"
   extra_args: ["--with-llvm=/usr/lib/llvm-3.9"]
   test_files:
-    lab2: "lab2/lab2.yaml"
-    lab3: "lab3/lab3.yaml"
+    lab2: "lab2/lab2.yml"
+    lab3: "lab3/lab3.yml"
+    lab3-types: "lab3/lab3-types.yml'

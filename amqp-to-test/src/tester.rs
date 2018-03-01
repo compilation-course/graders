@@ -30,13 +30,13 @@ fn execute(
     request: &AMQPRequest,
     cpu_pool: &CpuPool,
 ) -> Box<Future<Item = String, Error = errors::Error>> {
-    let test_file = match config.test_files.get(&request.step) {
+    let test_file = match config.test_files.get(&request.lab) {
         Some(file) => config.dir_in_docker.join(&file),
         None => {
             return Box::new(future::err(
                 format!(
-                    "unable to find configuration for step {} for {}",
-                    request.step, request.job_name
+                    "unable to find configuration for lab {} for {}",
+                    request.lab, request.job_name
                 ).into(),
             ))
         }
@@ -97,7 +97,7 @@ fn execute_request(
             })
             .map(move |yaml| AMQPResponse {
                 job_name: request.job_name,
-                step: request.step,
+                lab: request.lab,
                 opaque: request.opaque,
                 yaml_result: yaml,
                 result_queue: request.result_queue,
