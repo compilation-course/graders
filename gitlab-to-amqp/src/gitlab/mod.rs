@@ -205,14 +205,14 @@ pub fn packager(
     )
 }
 
-pub fn remove_zip_file(config: &Configuration, zip: &String) -> io::Result<()> {
+pub fn remove_zip_file(config: &Configuration, zip: &str) -> io::Result<()> {
     fs::remove_file(config.package.zip_dir.join(zip))
 }
 
-pub fn to_opaque(hook: &GitlabHook, zip_file_name: &String) -> String {
+pub fn to_opaque(hook: &GitlabHook, zip_file_name: &str) -> String {
     serde_json::to_string(&(hook, zip_file_name)).unwrap()
 }
 
-pub fn from_opaque(opaque: &String) -> errors::Result<(GitlabHook, String)> {
+pub fn from_opaque(opaque: &str) -> errors::Result<(GitlabHook, String)> {
     Ok(serde_json::from_str(opaque)?)
 }
