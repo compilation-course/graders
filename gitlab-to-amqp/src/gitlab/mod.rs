@@ -48,6 +48,14 @@ impl GitlabHook {
     pub fn url(&self) -> &Url {
         &self.repository.git_http_url
     }
+
+    pub fn branch_name(&self) -> Option<&str> {
+        if self.ref_.starts_with("refs/heads/") {
+            Some(&self.ref_[11..])
+        } else {
+            None
+        }
+    }
 }
 
 fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repository> {
@@ -105,7 +113,7 @@ fn package(
                     &config.gitlab,
                     hook,
                     &State::Running,
-                    Some(&hook.ref_),
+                    hook.branch_name(),
                     &lab.name,
                     Some("packaging and testing"),
                 ),
@@ -123,7 +131,7 @@ fn package(
                             &config.gitlab,
                             hook,
                             &State::Failed,
-                            Some(&hook.ref_),
+                            hook.branch_name(),
                             &lab.name,
                             Some("unable to package compiler"),
                         ),

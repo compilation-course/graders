@@ -132,7 +132,7 @@ pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Resu
         &config.gitlab,
         &hook,
         &state,
-        Some(&hook.ref_),
+        hook.branch_name(),
         &response.lab,
         Some(&format!("grade: {}/{}", grade, max_grade)),
     );
