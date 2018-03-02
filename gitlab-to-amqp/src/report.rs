@@ -29,6 +29,19 @@ pub struct Test {
     coefficient: usize,
     description: String,
     success: bool,
+    signal: Option<u32>,
+}
+
+fn signal_to_explanation(signal: u32) -> &'static str {
+    match signal {
+        4 => "illegal instruction",
+        6 => "abort, possibly because of a failed assertion",
+        8 => "arithmetic exception",
+        9 => "program killed",
+        10 => "bus error",
+        11 => "segmentation fault",
+        _ => "crash",
+    }
 }
 
 fn yaml_to_markdown(lab: &str, yaml: &str) -> Result<(String, usize, usize)> {
@@ -64,13 +77,16 @@ There has been an error during the test for {}:
                     .filter(|test| !test.success)
                     .map(|test| {
                         format!(
-                            "- {}{}",
+                            "- {}{}{}",
                             &test.description,
                             if test.coefficient != 1 {
                                 format!(" (coefficient {})", test.coefficient)
                             } else {
                                 "".to_owned()
-                            }
+                            },
+                            test.signal
+                                .map(|s| format!(" [{}]", signal_to_explanation(s)))
+                                .unwrap_or_else(|| "".to_owned()),
                         )
                     })
                     .collect::<Vec<_>>()
