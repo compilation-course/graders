@@ -45,17 +45,14 @@ fn run() -> errors::Result<()> {
     let (send_response, receive_response) = mpsc::channel(16);
     let executor = tester::start_executor(&config, receive_request, send_response);
     let amqp_process = amqp::amqp_process(&config, send_request, receive_response);
-    current_thread::run(|_| {
-        current_thread::spawn(
-            amqp_process
-                .from_err::<errors::Error>()
-                .join(executor.then(|_| bail!("error in executor")))
-                .map(|(_, _): ((), ())| ())
-                .map_err(|e| {
-                    error!("fatal error: {}", e);
-                    ()
-                }),
-        );
-    });
-    Ok(())
+    current_thread::block_on_all(
+        amqp_process
+            .from_err::<errors::Error>()
+            .join(executor.then(|_| bail!("error in executor")))
+            .map(|(_, _): ((), ())| ())
+            .map_err(|e| {
+                error!("fatal error: {}", e);
+                e
+            }),
+    )
 }

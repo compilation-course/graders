@@ -59,7 +59,7 @@ fn run() -> errors::Result<()> {
     let cloned_config = config.clone();
     let cloned_cpu_pool = cpu_pool.clone();
     thread::spawn(move || {
-        current_thread::run(|_| {
+        if let Err(e) = current_thread::block_on_all({
             let packager =
                 gitlab::packager(&cloned_config, &cloned_cpu_pool, receive_hook, send_request);
             let amqp_process = amqp::amqp_process(&cloned_config, receive_request, send_response);
@@ -72,22 +72,19 @@ fn run() -> errors::Result<()> {
                 }
                 future::ok(())
             });
-            current_thread::spawn(
-                packager
-                    .join3(
-                        amqp_process.map_err(|e| {
-                            error!("AMQP process error: {}", e);
-                            ()
-                        }),
-                        parrot,
-                    )
-                    .map(|_| ())
-                    .map_err(|_| {
-                        error!("exiting because a fatal error occurred");
-                        process::exit(1);
+            packager
+                .join3(
+                    amqp_process.map_err(|e| {
+                        error!("AMQP process error: {}", e);
+                        ()
                     }),
-            );
-        });
+                    parrot,
+                )
+                .map(|_| ())
+        }) {
+            error!("exiting because a fatal error occurred: {:?}", e);
+            process::exit(1);
+        }
     });
     match web::web_server_thread(&cpu_pool, &config, send_hook).join() {
         Ok(r) => r,

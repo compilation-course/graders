@@ -83,22 +83,11 @@ impl Service for GitlabService {
                         })
                         .map(move |hook| {
                             trace!("received json and will pass it around: {:?}", hook);
-                            current_thread::run(|_| {
-                                let hook_clone = hook.clone();
-                                current_thread::spawn(
-                                    send_request
-                                        .clone()
-                                        .send(hook)
-                                        .map(|_| ())
-                                        .map_err(move |e| {
-                                            error!(
-                                                "unable to send hook {:?} around: {}",
-                                                hook_clone, e
-                                            );
-                                            ()
-                                        }),
-                                )
-                            });
+                            if let Err(e) = current_thread::block_on_all({
+                                send_request.clone().send(hook.clone()).map(|_| ())
+                            }) {
+                                error!("unable to send hook {:?} around: {}", hook, e);
+                            }
                             Response::<Body>::new().with_status(StatusCode::NoContent)
                         }),
                 )
