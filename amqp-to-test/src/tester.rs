@@ -17,6 +17,7 @@ pub struct TesterConfiguration {
     pub docker_image: String,
     pub dir_on_host: PathBuf,
     pub dir_in_docker: PathBuf,
+    pub env: Option<BTreeMap<String, String>>,
     pub extra_args: Option<Vec<String>>,
     pub parallelism: usize,
     pub program: PathBuf,
@@ -45,6 +46,13 @@ fn execute(
     let program = config.dir_in_docker.join(&config.program);
     let dir_on_host = config.dir_on_host.clone();
     let dir_in_docker = config.dir_in_docker.clone();
+    let env = config
+        .env
+        .clone()
+        .unwrap_or_else(|| BTreeMap::new())
+        .iter()
+        .flat_map(|(k, v)| vec!["-e".to_owned(), format!("{}={}", k, v)])
+        .collect::<Vec<_>>();
     let docker_image = config.docker_image.clone();
     let extra_args = config.extra_args.clone().unwrap_or_else(|| vec![]);
     Box::new(cpu_pool.spawn_fn(move || {
@@ -58,6 +66,7 @@ fn execute(
                 dir_on_host.to_str().unwrap(),
                 dir_in_docker.to_str().unwrap()
             ))
+            .args(env)
             .arg(&docker_image)
             .args(extra_args)
             .arg(&request.zip_url)
