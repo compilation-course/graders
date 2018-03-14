@@ -65,13 +65,11 @@ pub fn declare_exchange_and_queue(
     config: &AMQPConfiguration,
 ) -> Box<Future<Item = (), Error = io::Error>> {
     let channel = channel.clone();
-    let channel1 = channel.clone();
     let config = config.clone();
-    let config1 = config.clone();
     Box::new(
         declare_exchange(&channel, &config)
-            .and_then(move |_| declare_queue(&channel, &config))
-            .and_then(move |_| bind_queue(&channel1, &config1)),
+            .and_then(move |_| declare_queue(&channel, &config).map(move |()| (channel, config)))
+            .and_then(move |(channel, config)| bind_queue(&channel, &config)),
     )
 }
 

@@ -70,7 +70,7 @@ fn amqp_sender(
                 );
                 let queue = mem::replace(&mut response.result_queue, "".to_owned());
                 let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
-                let channel_clone = channel.clone();
+                let channel = channel.clone();
                 channel
                     .basic_publish(
                         "",
@@ -79,7 +79,7 @@ fn amqp_sender(
                         &BasicPublishOptions::default(),
                         BasicProperties::default(),
                     )
-                    .and_then(move |_| channel_clone.basic_ack(delivery_tag))
+                    .and_then(move |_| channel.basic_ack(delivery_tag))
             }),
     )
 }
