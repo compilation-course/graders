@@ -49,7 +49,7 @@ pub struct LabConfiguration {
 
 impl LabConfiguration {
     pub fn is_enabled(&self) -> bool {
-        self.enabled.unwrap_or(false)
+        self.enabled.unwrap_or(true)
     }
 }
 
