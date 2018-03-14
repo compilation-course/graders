@@ -99,7 +99,7 @@ fn package(
     let _repo = clone(&config.gitlab.token, hook, &root)?;
     let zip_dir = &Path::new(&config.package.zip_dir);
     let mut to_test = Vec::new();
-    for lab in &config.labs {
+    for lab in config.labs.iter().filter(|l| l.is_enabled()) {
         let path = root.join(&lab.base).join(&lab.dir);
         if path.is_dir()
             && lab.witness

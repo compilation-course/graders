@@ -44,6 +44,13 @@ pub struct LabConfiguration {
     pub base: PathBuf,
     pub dir: PathBuf,
     pub witness: Option<PathBuf>,
+    pub enabled: Option<bool>,
+}
+
+impl LabConfiguration {
+    pub fn is_enabled(&self) -> bool {
+        self.enabled.unwrap_or(false)
+    }
 }
 
 pub fn load_configuration(file: &str) -> errors::Result<Configuration> {

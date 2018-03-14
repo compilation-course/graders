@@ -52,6 +52,15 @@ fn configuration() -> errors::Result<Configuration> {
 
 fn run() -> errors::Result<()> {
     let config = Arc::new(configuration()?);
+    info!(
+        "configured for labs {:?}",
+        config
+            .labs
+            .iter()
+            .filter(|l| l.is_enabled())
+            .map(|l| &l.name)
+            .collect::<Vec<_>>()
+    );
     let cpu_pool = CpuPool::new(config.package.threads);
     let (send_hook, receive_hook) = mpsc::channel(16);
     let (send_request, receive_request) = mpsc::channel(16);

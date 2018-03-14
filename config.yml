@@ -11,10 +11,14 @@ package:
   threads: 4
   zip_dir: "/some/path/to/zip/dir"
 
+# By default, labs are enabled. When no witness is set
+# for a lab, the mere presence of the directory is enough
+# to trigger it.
 labs:
   - name: lab2
     base: lab2
     dir: dragon-tiger
+    enabled: false
   - name: lab3
     base: lab3
     dir: dragon-tiger
