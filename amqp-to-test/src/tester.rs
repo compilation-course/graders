@@ -17,7 +17,7 @@ pub struct TesterConfiguration {
     pub docker_image: String,
     pub dir_on_host: PathBuf,
     pub dir_in_docker: PathBuf,
-    pub env: Option<BTreeMap<String, String>>,
+    pub env: Option<BTreeMap<String, BTreeMap<String, String>>>,
     pub extra_args: Option<Vec<String>>,
     pub parallelism: usize,
     pub program: PathBuf,
@@ -49,6 +49,9 @@ fn execute(
     let env = config
         .env
         .clone()
+        .unwrap_or_else(|| BTreeMap::new())
+        .get(&request.lab)
+        .cloned()
         .unwrap_or_else(|| BTreeMap::new())
         .iter()
         .flat_map(|(k, v)| vec!["-e".to_owned(), format!("{}={}", k, v)])

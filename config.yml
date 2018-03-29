@@ -47,4 +47,5 @@ tester:
     lab3-types: "lab3/lab3-types.yml'
     lab4: "lab4/lab4.yml"
   env:
-    RUNTIME_LIB: "/labs/libruntime.a"
+    lab5:
+      RUNTIME_LIB: "/labs/libruntime.a"
