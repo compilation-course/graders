@@ -19,3 +19,4 @@ RUN apt-get --no-install-recommends -y install \
       zlib1g-dev
 COPY --from=builder /tmp/builder/target/release/builder /
 ENTRYPOINT ["/builder"]
+ENV LC_ALL C.UTF-8
