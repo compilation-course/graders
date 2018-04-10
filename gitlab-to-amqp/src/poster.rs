@@ -1,5 +1,5 @@
-use futures_cpupool::CpuPool;
 use futures::Future;
+use futures_cpupool::CpuPool;
 use hyper::{Client, Request};
 use hyper_tls::HttpsConnector;
 use tokio_core::reactor::Core;

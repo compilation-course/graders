@@ -1,13 +1,13 @@
 use config::Configuration;
 use errors;
-use futures::*;
 use futures::sync::mpsc::Sender;
+use futures::*;
 use futures_cpupool::CpuPool;
 use gitlab::GitlabHook;
 use graders_utils::fileutils;
-use hyper::{Body, Error as HyperError, Method, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
+use hyper::{Body, Error as HyperError, Method, StatusCode};
 use serde_json;
 use std::fs::File;
 use std::io::Read;

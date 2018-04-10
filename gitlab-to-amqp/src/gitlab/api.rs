@@ -1,9 +1,9 @@
+use super::GitlabHook;
 use config::GitlabConfiguration;
-use hyper::{Method, Request};
 use hyper::header::{ContentLength, ContentType};
+use hyper::{Method, Request};
 use std::borrow::Borrow;
 use std::fmt;
-use super::GitlabHook;
 use url::{form_urlencoded, Url};
 
 fn base_api(config: &GitlabConfiguration) -> Url {

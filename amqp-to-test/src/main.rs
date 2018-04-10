@@ -22,8 +22,8 @@ mod tester;
 
 use clap::App;
 use config::Configuration;
-use futures::Future;
 use futures::sync::mpsc;
+use futures::Future;
 use std::sync::Arc;
 use tokio::executor::current_thread;
 

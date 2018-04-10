@@ -1,18 +1,18 @@
 pub mod api;
 
+use self::api::State;
 use config::Configuration;
 use errors;
-use futures::{Future, Sink};
 use futures::stream::{self, Stream};
-use futures_cpupool::CpuPool;
 use futures::sync::mpsc::{Receiver, Sender};
-use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
+use futures::{Future, Sink};
+use futures_cpupool::CpuPool;
 use git2::build::{CheckoutBuilder, RepoBuilder};
+use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use graders_utils::amqputils::AMQPRequest;
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
 use poster;
-use self::api::State;
 use serde_json;
 use std::fs;
 use std::io;

@@ -1,7 +1,7 @@
 use config::Configuration;
 use futures::future::{self, Future};
-use futures::{Sink, Stream};
 use futures::sync::mpsc::{Receiver, Sender};
+use futures::{Sink, Stream};
 use gitlab;
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
 use lapin::channel::{BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel,

@@ -34,8 +34,8 @@ mod web;
 
 use clap::App;
 use config::Configuration;
-use futures::*;
 use futures::sync::mpsc;
+use futures::*;
 use futures_cpupool::CpuPool;
 use std::process;
 use std::sync::Arc;

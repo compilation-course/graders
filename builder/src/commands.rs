@@ -1,8 +1,8 @@
+use super::Opt;
 use errors::ErrorKind::RunError;
 use errors::Result;
 use std::path::Path;
 use std::process::{Command, Stdio};
-use super::Opt;
 
 pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String> {
     info!(

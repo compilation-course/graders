@@ -1,8 +1,8 @@
 use git2;
 use hyper;
-use std;
 use serde_json;
 use serde_yaml;
+use std;
 
 error_chain! {
     errors {
