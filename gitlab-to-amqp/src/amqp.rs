@@ -106,15 +106,17 @@ pub fn amqp_process(
 ) -> Box<Future<Item = (), Error = io::Error>> {
     let client = amqputils::create_client(&Handle::default(), &config.amqp);
     let config = config.clone();
-    Box::new(
-        client
-            .and_then(|client| client.create_channel())
-            .and_then(|channel| {
-                amqputils::declare_exchange_and_queue(&channel, &config.amqp).and_then(move |_| {
-                    amqp_publisher(&channel, &config, receive_request)
-                        .join(amqp_receiver(&channel, send_response))
-                        .map(|_| ())
-                })
-            }),
-    )
+    Box::new(client.and_then(move |client| {
+        let publisher = client
+            .create_channel()
+            .and_then(move |channel| {
+                amqputils::declare_exchange_and_queue(&channel, &config.amqp)
+                    .map(|_| (channel, config))
+            })
+            .and_then(move |(channel, config)| amqp_publisher(&channel, &config, receive_request));
+        let receiver = client
+            .create_channel()
+            .and_then(|channel| amqp_receiver(&channel, send_response));
+        publisher.join(receiver).map(|_| ())
+    }))
 }
