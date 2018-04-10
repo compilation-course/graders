@@ -64,11 +64,15 @@ fn amqp_receiver(
     )
 }
 
+// Acks must be sent on the original channel. Sending concurrently
+// is supposed to be compatible with basic_consume.
 fn amqp_sender(
     channel: &Channel<TcpStream>,
+    ack_channel: &Channel<TcpStream>,
     receive_response: Receiver<AMQPResponse>,
 ) -> Box<Future<Item = (), Error = io::Error>> {
     let channel = channel.clone();
+    let ack_channel = ack_channel.clone();
     Box::new(
         receive_response
             .map_err(|_| io::Error::new(io::ErrorKind::Other, ""))  // Dummy
@@ -81,6 +85,7 @@ fn amqp_sender(
                 let queue = mem::replace(&mut response.result_queue, "".to_owned());
                 let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
                 let channel = channel.clone();
+                let ack_channel = ack_channel.clone();
                 channel
                     .basic_publish(
                         "",
@@ -89,7 +94,7 @@ fn amqp_sender(
                         &BasicPublishOptions::default(),
                         BasicProperties::default(),
                     )
-                    .and_then(move |_| channel.basic_ack(delivery_tag))
+                    .and_then(move |_| ack_channel.basic_ack(delivery_tag))
             }),
     )
 }
@@ -101,15 +106,15 @@ pub fn amqp_process(
 ) -> Box<Future<Item = (), Error = io::Error>> {
     let client = amqputils::create_client(&Handle::default(), &config.amqp);
     let config = config.clone();
-    Box::new(
-        client
-            .and_then(|client| client.create_channel())
-            .and_then(|channel| {
-                amqputils::declare_exchange_and_queue(&channel, &config.amqp).and_then(move |_| {
-                    amqp_receiver(&channel, &config, send_request)
-                        .join(amqp_sender(&channel, receive_response))
-                        .map(|_| ())
-                })
-            }),
-    )
+    Box::new(client.and_then(move |client| {
+        client.create_channel().and_then(move |channel| {
+            let ack_channel = channel.clone();
+            let receiver = amqputils::declare_exchange_and_queue(&channel, &config.amqp)
+                .and_then(move |_| amqp_receiver(&channel, &config, send_request));
+            let sender = client
+                .create_channel()
+                .and_then(move |channel| amqp_sender(&channel, &ack_channel, receive_response));
+            receiver.join(sender).map(|_| ())
+        })
+    }))
 }
