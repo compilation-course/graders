@@ -1,9 +1,10 @@
 use config::Configuration;
 use futures::future::Future;
-use futures::{Sink, Stream};
 use futures::sync::mpsc::{Receiver, Sender};
+use futures::{Sink, Stream};
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
-use lapin::channel::{BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel};
+use lapin::channel::{BasicConsumeOptions, BasicProperties, BasicPublishOptions, BasicQosOptions,
+                     Channel};
 use lapin::types::FieldTable;
 use serde_json;
 use std::io;
@@ -17,14 +18,23 @@ fn amqp_receiver(
     config: &Arc<Configuration>,
     send_request: Sender<AMQPRequest>,
 ) -> Box<Future<Item = (), Error = io::Error>> {
+    let channel = channel.clone();
+    let config = config.clone();
     Box::new(
         channel
-            .basic_consume(
-                &config.amqp.queue,
-                "amqp-to-test",
-                &BasicConsumeOptions::default(),
-                &FieldTable::new(),
-            )
+            .basic_qos(&BasicQosOptions {
+                prefetch_count: config.tester.parallelism as u16,
+                global: false,
+                ..Default::default()
+            })
+            .and_then(move |_| {
+                channel.basic_consume(
+                    &config.amqp.queue,
+                    "amqp-to-test",
+                    &BasicConsumeOptions::default(),
+                    &FieldTable::new(),
+                )
+            })
             .and_then(move |stream| {
                 let data = stream
                     .filter_map(|msg| match String::from_utf8(msg.data) {
