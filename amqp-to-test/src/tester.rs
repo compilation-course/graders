@@ -1,8 +1,8 @@
 use config;
-use errors::{self, ResultExt};
 use errors::ErrorKind::ExecutionError;
-use futures::{future, Future, Sink, Stream};
+use errors::{self, ResultExt};
 use futures::sync::mpsc::{Receiver, Sender};
+use futures::{future, Future, Sink, Stream};
 use futures_cpupool::CpuPool;
 use graders_utils::amqputils::{AMQPRequest, AMQPResponse};
 use serde_yaml;
@@ -49,10 +49,10 @@ fn execute(
     let env = config
         .env
         .clone()
-        .unwrap_or_else(|| BTreeMap::new())
+        .unwrap_or_else(BTreeMap::new)
         .get(&request.lab)
         .cloned()
-        .unwrap_or_else(|| BTreeMap::new())
+        .unwrap_or_else(BTreeMap::new)
         .iter()
         .flat_map(|(k, v)| vec!["-e".to_owned(), format!("{}={}", k, v)])
         .collect::<Vec<_>>();
