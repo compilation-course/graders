@@ -4,7 +4,7 @@ RUN apt-get -y install curl build-essential libssl-dev pkg-config cmake zlib1g-d
 RUN curl https://sh.rustup.rs -sSf > /tmp/rustup.sh && chmod 755 /tmp/rustup.sh && /tmp/rustup.sh -y
 RUN mkdir /tmp/builder
 COPY . /tmp/builder
-RUN cd /tmp/builder/gitlab-to-amqp && /root/.cargo/bin/cargo build --release
+RUN cd /tmp/builder/gitlab-to-amqp && OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu/ OPENSSL_INCLUDE_DIR=/usr/include OPENSSL_STATIC=yes /root/.cargo/bin/cargo build --release
 
 FROM debian:stretch
 MAINTAINER Samuel Tardieu <sam@rfc1149.net>
