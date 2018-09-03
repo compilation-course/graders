@@ -75,7 +75,8 @@ fn run() -> errors::Result<()> {
             let parrot = receive_response.for_each(move |response| {
                 trace!("Received reponse: {:?}", response);
                 match report::response_to_post(&cloned_config, &response) {
-                    Ok(rqs) => rqs.into_iter()
+                    Ok(rqs) => rqs
+                        .into_iter()
                         .for_each(|rq| poster::post(&cloned_cpu_pool, rq)),
                     Err(e) => error!("could not build response to post: {}", e),
                 }
@@ -88,8 +89,7 @@ fn run() -> errors::Result<()> {
                         ()
                     }),
                     parrot,
-                )
-                .map(|_| ())
+                ).map(|_| ())
         }) {
             error!("exiting because a fatal error occurred: {:?}", e);
             process::exit(1);

@@ -78,10 +78,12 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
         let rev = repo.revparse_single(&hook.checkout_sha)?;
         repo.checkout_tree(
             &rev,
-            Some(&mut CheckoutBuilder::new()
-                .force()
-                .remove_untracked(true)
-                .remove_ignored(true)),
+            Some(
+                &mut CheckoutBuilder::new()
+                    .force()
+                    .remove_untracked(true)
+                    .remove_ignored(true),
+            ),
         )?;
         repo.set_head_detached(rev.id())?;
     }
@@ -101,11 +103,11 @@ fn package(
     let mut to_test = Vec::new();
     for lab in config.labs.iter().filter(|l| l.is_enabled()) {
         let path = root.join(&lab.base).join(&lab.dir);
-        if path.is_dir()
-            && lab.witness
-                .clone()
-                .map(|w| path.join(w).is_file())
-                .unwrap_or(true)
+        if path.is_dir() && lab
+            .witness
+            .clone()
+            .map(|w| path.join(w).is_file())
+            .unwrap_or(true)
         {
             poster::post(
                 cpu_pool,
@@ -161,7 +163,7 @@ fn labs_result_to_stream(
                 &hook.checkout_sha,
                 &lab
             ),
-            lab: lab,
+            lab,
             zip_url: base_url
                 .join("zips/")
                 .unwrap()
@@ -196,12 +198,9 @@ pub fn packager(
                         cpu_pool
                             .spawn_fn(move || {
                                 package(&config, &clone_hook, &cpu_pool_clone).map_err(|_| ())
-                            })
-                            .map(move |labs| labs_result_to_stream(&base_url, &hook, labs))
-                    })
-                    .flatten(),
-            )
-            .map(|_| ()),
+                            }).map(move |labs| labs_result_to_stream(&base_url, &hook, labs))
+                    }).flatten(),
+            ).map(|_| ()),
     )
 }
 

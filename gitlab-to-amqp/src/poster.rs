@@ -23,6 +23,5 @@ pub fn post(cpu_pool: &CpuPool, request: Request) {
                 e
             });
             core.run(post)
-        })
-        .forget();
+        }).forget();
 }

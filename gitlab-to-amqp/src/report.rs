@@ -71,26 +71,27 @@ There has been an error during the test for {}:
         .map(|group| {
             let tests = if group.grade != 0 {
                 let mut explanation = "Failing tests:\n\n".to_owned();
-                explanation.push_str(&group
-                    .tests
-                    .iter()
-                    .filter(|test| !test.success)
-                    .map(|test| {
-                        format!(
-                            "- {}{}{}",
-                            &test.description,
-                            if test.coefficient != 1 {
-                                format!(" (coefficient {})", test.coefficient)
-                            } else {
-                                "".to_owned()
-                            },
-                            test.signal
-                                .map(|s| format!(" [{}]", signal_to_explanation(s)))
-                                .unwrap_or_else(|| "".to_owned()),
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n"));
+                explanation.push_str(
+                    &group
+                        .tests
+                        .iter()
+                        .filter(|test| !test.success)
+                        .map(|test| {
+                            format!(
+                                "- {}{}{}",
+                                &test.description,
+                                if test.coefficient != 1 {
+                                    format!(" (coefficient {})", test.coefficient)
+                                } else {
+                                    "".to_owned()
+                                },
+                                test.signal
+                                    .map(|s| format!(" [{}]", signal_to_explanation(s)))
+                                    .unwrap_or_else(|| "".to_owned()),
+                            )
+                        }).collect::<Vec<_>>()
+                        .join("\n"),
+                );
                 explanation
             } else {
                 String::new()
@@ -104,8 +105,7 @@ There has been an error during the test for {}:
                 pass_fail(group.grade, group.max_grade),
                 tests
             )
-        })
-        .collect::<Vec<_>>()
+        }).collect::<Vec<_>>()
         .join("\n");
     let diagnostic = format!(
         "## Failed tests report for {} ({})\n\n{}",

@@ -4,8 +4,9 @@ use futures::sync::mpsc::{Receiver, Sender};
 use futures::{Sink, Stream};
 use gitlab;
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
-use lapin::channel::{BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel,
-                     QueueDeclareOptions};
+use lapin::channel::{
+    BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel, QueueDeclareOptions,
+};
 use lapin::types::FieldTable;
 use serde_json;
 use std::io;
@@ -32,8 +33,7 @@ fn amqp_publisher(
                     &BasicPublishOptions::default(),
                     BasicProperties::default(),
                 )
-            })
-            .for_each(|_| future::ok(())),
+            }).for_each(|_| future::ok(())),
     )
 }
 
@@ -52,16 +52,14 @@ fn amqp_receiver(
                     ..Default::default()
                 },
                 &FieldTable::new(),
-            )
-            .and_then(move |_| {
+            ).and_then(move |_| {
                 channel.basic_consume(
                     gitlab::RESULT_QUEUE,
                     "gitlab-to-amqp",
                     &BasicConsumeOptions::default(),
                     &FieldTable::new(),
                 )
-            })
-            .and_then(move |stream| {
+            }).and_then(move |stream| {
                 info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
                 let data = stream
                     .and_then(move |msg| channel_clone.basic_ack(msg.delivery_tag).map(|_| msg))
@@ -71,23 +69,23 @@ fn amqp_receiver(
                             error!("unable to decode message as valid utf8 string: {}", e);
                             None
                         }
-                    })
-                    .filter_map(|s| match serde_json::from_str::<AMQPResponse>(&s) {
-                        Ok(response) => {
-                            trace!("received response for {}", response.job_name);
-                            Some(response)
-                        }
-                        Err(e) => {
-                            error!("unable to decode message {} as AMQPResponse: {}", s, e);
-                            None
+                    }).filter_map(|s| {
+                        match serde_json::from_str::<AMQPResponse>(&s) {
+                            Ok(response) => {
+                                trace!("received response for {}", response.job_name);
+                                Some(response)
+                            }
+                            Err(e) => {
+                                error!("unable to decode message {} as AMQPResponse: {}", s, e);
+                                None
+                            }
                         }
                     });
                 send_response
                     .sink_map_err(|e| {
                         warn!("sink error: {}", e);
                         io::Error::new(io::ErrorKind::Other, format!("sink error: {}", e))
-                    })
-                    .send_all(data)
+                    }).send_all(data)
                     .map(|_| {
                         warn!(
                             "terminating listening onto the {} queue",
@@ -107,13 +105,15 @@ pub fn amqp_process(
     let client = amqputils::create_client(&Handle::default(), &config.amqp);
     let config = config.clone();
     Box::new(client.and_then(move |client| {
-        let publisher = client
-            .create_channel()
-            .and_then(move |channel| {
-                amqputils::declare_exchange_and_queue(&channel, &config.amqp)
-                    .map(|_| (channel, config))
-            })
-            .and_then(move |(channel, config)| amqp_publisher(&channel, &config, receive_request));
+        let publisher =
+            client
+                .create_channel()
+                .and_then(move |channel| {
+                    amqputils::declare_exchange_and_queue(&channel, &config.amqp)
+                        .map(|_| (channel, config))
+                }).and_then(move |(channel, config)| {
+                    amqp_publisher(&channel, &config, receive_request)
+                });
         let receiver = client
             .create_channel()
             .and_then(|channel| amqp_receiver(&channel, send_response));

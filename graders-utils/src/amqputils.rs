@@ -88,8 +88,7 @@ fn declare_exchange(
                     ..Default::default()
                 },
                 &FieldTable::new(),
-            )
-            .map_err(move |e| {
+            ).map_err(move |e| {
                 error!("cannot declare exchange {}: {}", exchange, e);
                 e
             }),
@@ -110,8 +109,7 @@ fn declare_queue(
                     ..Default::default()
                 },
                 &FieldTable::new(),
-            )
-            .map_err(move |e| {
+            ).map_err(move |e| {
                 error!("could not declare queue {}: {}", queue, e);
                 e
             }),
@@ -133,8 +131,7 @@ fn bind_queue(
                 &routing_key,
                 &QueueBindOptions::default(),
                 &FieldTable::new(),
-            )
-            .map_err(move |e| {
+            ).map_err(move |e| {
                 error!(
                     "could not bind queue {} to exchange {} using routing key {}: {}",
                     queue, exchange, routing_key, e

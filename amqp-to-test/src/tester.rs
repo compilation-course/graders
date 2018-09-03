@@ -68,8 +68,7 @@ fn execute(
                 "{}:{}",
                 dir_on_host.to_str().unwrap(),
                 dir_in_docker.to_str().unwrap()
-            ))
-            .args(env)
+            )).args(env)
             .arg(&docker_image)
             .args(extra_args)
             .arg(&request.zip_url)
@@ -106,8 +105,7 @@ fn execute_request(
             .then(|result| match result {
                 Ok(y) => future::ok(y),
                 Err(e) => future::ok(yaml_error(&e)),
-            })
-            .map(|yaml| AMQPResponse {
+            }).map(|yaml| AMQPResponse {
                 job_name: request.job_name,
                 lab: request.lab,
                 opaque: request.opaque,
@@ -152,8 +150,7 @@ pub fn start_executor(
                         error!("unable to send AMQPResponse to queue: {}", e);
                         ()
                     })
-                })
-                .map(|_| ()),
+                }).map(|_| ()),
         );
         future::ok(())
     }))

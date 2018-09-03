@@ -80,8 +80,7 @@ impl Service for GitlabService {
                                 error!("error when decoding body: {}", e);
                                 HyperError::Status
                             })
-                        })
-                        .map(move |hook| {
+                        }).map(move |hook| {
                             trace!("received json and will pass it around: {:?}", hook);
                             current_thread::spawn(
                                 send_request.clone().send(hook.clone()).map(|_| ()).map_err(
@@ -110,8 +109,7 @@ impl Service for GitlabService {
                                     Vec::with_capacity(zip_file.metadata()?.len() as usize);
                                 File::open(&zip_file)?.read_to_end(&mut content)?;
                                 Ok(content)
-                            })
-                            .map(|content| {
+                            }).map(|content| {
                                 Response::<Body>::new()
                                     .with_header(ContentType("application/zip".parse().unwrap()))
                                     .with_header(ContentLength(content.len() as u64))
