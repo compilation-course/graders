@@ -1,13 +1,11 @@
-use futures::future::{self, Future};
+use futures::future::Future;
 use lapin::channel::{Channel, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions};
 use lapin::client::{Client, ConnectionOptions};
 use lapin::queue::Queue;
 use lapin::types::FieldTable;
 use std::io;
-use std::net;
 use tokio;
 use tokio::net::TcpStream;
-use tokio::reactor::Handle;
 
 #[derive(Clone, Deserialize)]
 pub struct AMQPConfiguration {
@@ -40,30 +38,27 @@ pub struct AMQPResponse {
     pub delivery_tag: u64,
 }
 
+/// Return a client that will connect to a remote AMQP server.
 pub fn create_client(
-    handle: &Handle,
     config: &AMQPConfiguration,
-) -> Box<Future<Item = Client<TcpStream>, Error = io::Error>> {
-    match net::TcpStream::connect(&format!("{}:{}", config.host, config.port)) {
-        Ok(s) => Box::new(
-            future::result(TcpStream::from_std(s, handle))
-                .and_then(|stream| Client::connect(stream, ConnectionOptions::default()))
-                .map(|(client, heartbeat)| {
-                    tokio::spawn(heartbeat.map_err(|e| {
-                        warn!("cannot send AMQP heartbeat: {}", e);
-                        ()
-                    }));
-                    client
-                }),
-        ),
-        Err(e) => Box::new(future::err(e)),
-    }
+) -> Box<Future<Item = Client<TcpStream>, Error = io::Error> + Send + 'static> {
+    Box::new(
+        TcpStream::connect(&format!("{}:{}", config.host, config.port).parse().unwrap())
+            .and_then(|stream| Client::connect(stream, ConnectionOptions::default()))
+            .map(|(client, heartbeat)| {
+                tokio::spawn(heartbeat.map_err(|e| {
+                    warn!("cannot send AMQP heartbeat: {}", e);
+                    ()
+                }));
+                client
+            }),
+    )
 }
 
 pub fn declare_exchange_and_queue(
     channel: &Channel<TcpStream>,
     config: &AMQPConfiguration,
-) -> Box<Future<Item = Queue, Error = io::Error>> {
+) -> Box<Future<Item = Queue, Error = io::Error> + Send + 'static> {
     let channel = channel.clone();
     let config = config.clone();
     Box::new(
@@ -79,7 +74,7 @@ pub fn declare_exchange_and_queue(
 fn declare_exchange(
     channel: &Channel<TcpStream>,
     config: &AMQPConfiguration,
-) -> Box<Future<Item = (), Error = io::Error>> {
+) -> Box<Future<Item = (), Error = io::Error> + Send + 'static> {
     let exchange = config.exchange.clone();
     Box::new(
         channel
@@ -101,7 +96,7 @@ fn declare_exchange(
 fn declare_queue(
     channel: &Channel<TcpStream>,
     config: &AMQPConfiguration,
-) -> Box<Future<Item = Queue, Error = io::Error>> {
+) -> Box<Future<Item = Queue, Error = io::Error> + Send + 'static> {
     let queue = config.queue.clone();
     Box::new(
         channel
@@ -122,7 +117,7 @@ fn declare_queue(
 fn bind_queue(
     channel: &Channel<TcpStream>,
     config: &AMQPConfiguration,
-) -> Box<Future<Item = (), Error = io::Error>> {
+) -> Box<Future<Item = (), Error = io::Error> + Send + 'static> {
     let queue = config.queue.clone();
     let exchange = config.exchange.clone();
     let routing_key = config.routing_key.clone();
