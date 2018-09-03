@@ -9,7 +9,7 @@ gitlab:
 
 package:
   threads: 4
-  zip_dir: "/some/path/to/zip/dir"
+  zip_dir: "/tmp/gitlab-to-amqp"
 
 # By default, labs are enabled. When no witness is set
 # for a lab, the mere presence of the directory is enough
