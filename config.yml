@@ -1,6 +1,6 @@
 server:
   ip: "0.0.0.0"
-  port: 80
+  port: 8000
   base_url: "https://grader.rfc1149.net/"
 
 gitlab:

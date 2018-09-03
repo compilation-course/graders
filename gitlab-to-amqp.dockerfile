@@ -10,6 +10,7 @@ FROM debian:stretch
 MAINTAINER Samuel Tardieu <sam@rfc1149.net>
 ENV DEBIAN_FRONTEND noninteractive
 COPY --from=builder /tmp/builder/target/release/gitlab-to-amqp /
-EXPOSE 80
+EXPOSE 8000
+USER nobody
 ENTRYPOINT ["/gitlab-to-amqp"]
 CMD ["/config.yml"]
