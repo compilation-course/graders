@@ -1,27 +1,28 @@
 use futures::Future;
-use futures_cpupool::CpuPool;
-use hyper::{Client, Request};
+use hyper::{self, Body, Client, Request, StatusCode};
 use hyper_tls::HttpsConnector;
-use tokio_core::reactor::Core;
 
-pub fn post(cpu_pool: &CpuPool, request: Request) {
-    // This convoluted way will be removed when hyper adopts Tokio reform and
-    // futures 0.2.
-    cpu_pool
-        .spawn_fn(move || {
-            let mut core = Core::new().unwrap();
-            let client = Client::configure()
-                .connector(HttpsConnector::new(4, &core.handle()).unwrap())
-                .build(&core.handle());
-            trace!(
-                "posting request to {} ({})",
-                request.uri(),
-                request.method()
-            );
-            let post = client.request(request).map_err(|e| {
-                error!("could not post request: {}", e);
-                e
-            });
-            core.run(post)
-        }).forget();
+pub fn post(
+    request: Request<String>,
+) -> impl Future<Item = StatusCode, Error = hyper::Error> + 'static {
+    let https = HttpsConnector::new(4).unwrap();
+    let client = Client::builder().build::<_, Body>(https);
+    trace!(
+        "preparing to post request to {} ({})",
+        request.uri(),
+        request.method()
+    );
+    let request = request.map(|s| Body::from(s));
+    let uri = request.uri().clone();
+    let method = request.method().clone();
+    let post = client
+        .request(request)
+        .map(move |r| {
+            trace!("request to {} ({}) returned {}", uri, method, r.status());
+            r.status()
+        }).map_err(|e| {
+            error!("could not post request: {}", e);
+            e
+        });
+    post
 }

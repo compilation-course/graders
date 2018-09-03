@@ -116,7 +116,10 @@ There has been an error during the test for {}:
     Ok((diagnostic, report.grade, report.max_grade))
 }
 
-pub fn response_to_post(config: &Configuration, response: &AMQPResponse) -> Result<Vec<Request>> {
+pub fn response_to_post(
+    config: &Configuration,
+    response: &AMQPResponse,
+) -> Result<Vec<Request<String>>> {
     let (report, grade, max_grade) = yaml_to_markdown(&response.lab, &response.yaml_result)?;
     let (hook, zip) = gitlab::from_opaque(&response.opaque)?;
     match gitlab::remove_zip_file(config, &zip) {

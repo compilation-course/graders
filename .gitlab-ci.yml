@@ -4,9 +4,7 @@ image: rust
   stage: test
   script:
     - rustup install $RUST
-    - cd xqueue-to-amqp
-    - cargo +$RUST test
-    - cd ../builder
+    - cd builder
     - cargo +$RUST test
   cache:
     key: "$CI_BUILD_NAME"

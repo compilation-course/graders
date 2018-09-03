@@ -5,12 +5,6 @@ use serde_yaml;
 use std;
 
 error_chain! {
-    errors {
-        WebServerCrash {
-            description("web server crash")
-        }
-    }
-
     foreign_links {
         AddrParse(std::net::AddrParseError);
         Git(git2::Error);

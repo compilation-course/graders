@@ -1,7 +1,7 @@
 use super::GitlabHook;
 use config::GitlabConfiguration;
-use hyper::header::{ContentLength, ContentType};
-use hyper::{Method, Request};
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
+use hyper::Request;
 use std::borrow::Borrow;
 use std::fmt;
 use url::{form_urlencoded, Url};
@@ -10,9 +10,7 @@ fn base_api(config: &GitlabConfiguration) -> Url {
     config.base_url.join("api/v4/").unwrap()
 }
 
-header! { (PrivateToken, "Private-Token") => [String] }
-
-fn make_post<I, K, V>(config: &GitlabConfiguration, fragment: &str, params: I) -> Request
+fn make_post<I, K, V>(config: &GitlabConfiguration, fragment: &str, params: I) -> Request<String>
 where
     I: IntoIterator,
     I::Item: Borrow<(K, V)>,
@@ -23,13 +21,12 @@ where
     let params = form_urlencoded::Serializer::new(String::new())
         .extend_pairs(params)
         .finish();
-    let mut req = Request::new(Method::Post, uri.to_string().parse().unwrap());
-    req.headers_mut().set(PrivateToken(config.token.to_owned()));
-    req.headers_mut().set(ContentType::form_url_encoded());
-    req.headers_mut().set(ContentType::form_url_encoded());
-    req.headers_mut().set(ContentLength(params.len() as u64));
-    req.set_body(params);
-    req
+    Request::post(uri.to_string())
+        .header("Private-Token", config.token.clone())
+        .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+        .header(CONTENT_LENGTH, params.len())
+        .body(params)
+        .unwrap()
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -64,7 +61,7 @@ pub fn post_status(
     ref_: Option<&str>,
     name: &str,
     description: Option<&str>,
-) -> Request {
+) -> Request<String> {
     let state = format!("{}", state);
     let mut params: Vec<(&str, &str)> = vec![("state", &state), ("name", name)];
     if let Some(r) = ref_ {
@@ -83,7 +80,11 @@ pub fn post_status(
     )
 }
 
-pub fn post_comment(config: &GitlabConfiguration, hook: &GitlabHook, note: &str) -> Request {
+pub fn post_comment(
+    config: &GitlabConfiguration,
+    hook: &GitlabHook,
+    note: &str,
+) -> Request<String> {
     make_post(
         config,
         &format!(

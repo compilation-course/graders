@@ -1,11 +1,13 @@
-use futures::future::Future;
+use futures::future::{self, Future};
 use lapin::channel::{Channel, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions};
 use lapin::client::{Client, ConnectionOptions};
 use lapin::queue::Queue;
 use lapin::types::FieldTable;
 use std::io;
+use std::net;
 use tokio;
 use tokio::net::TcpStream;
+use tokio::reactor::Handle;
 
 #[derive(Clone, Deserialize)]
 pub struct AMQPConfiguration {
@@ -42,8 +44,9 @@ pub struct AMQPResponse {
 pub fn create_client(
     config: &AMQPConfiguration,
 ) -> impl Future<Item = Client<TcpStream>, Error = io::Error> + Send + 'static {
-    let dest = format!("{}:{}", config.host, config.port).parse().unwrap();
-    TcpStream::connect(&dest)
+    let dest = format!("{}:{}", config.host, config.port);
+    future::result(net::TcpStream::connect(&dest))
+        .and_then(|stream| future::result(TcpStream::from_std(stream, &Handle::default())))
         .and_then(|stream| Client::connect(stream, ConnectionOptions::default()))
         .map(|(client, heartbeat)| {
             tokio::spawn(heartbeat.map_err(|e| {
@@ -52,7 +55,7 @@ pub fn create_client(
             }));
             client
         }).map_err(move |e| {
-            warn!("error when connecting AMQP client to {:?}: {}", dest, e);
+            warn!("error when connecting AMQP client to {}: {}", dest, e);
             e
         })
 }

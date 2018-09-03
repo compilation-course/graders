@@ -13,56 +13,51 @@ use std::io;
 use std::mem;
 use std::sync::Arc;
 use tokio::net::TcpStream;
-use tokio::reactor::Handle;
 
 fn amqp_receiver(
     channel: &Channel<TcpStream>,
     config: &Arc<Configuration>,
     queue: Queue,
     send_request: Sender<AMQPRequest>,
-) -> Box<Future<Item = (), Error = io::Error>> {
+) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
     let channel = channel.clone();
     let prefetch_count = config.tester.parallelism as u16;
-    Box::new(
-        channel
-            .basic_qos(BasicQosOptions {
-                prefetch_count,
-                global: false,
-                ..Default::default()
-            }).and_then(move |_| {
-                channel.basic_consume(
-                    &queue,
-                    "amqp-to-test",
-                    BasicConsumeOptions::default(),
-                    FieldTable::new(),
-                )
-            }).and_then(move |stream| {
-                let data = stream
-                    .filter_map(|msg| match String::from_utf8(msg.data) {
-                        Ok(s) => Some((s, msg.delivery_tag)),
-                        Err(e) => {
-                            error!("cannot decode message: {}", e);
-                            None
-                        }
-                    }).filter_map(move |(s, tag)| {
-                        match serde_json::from_str(&s) {
-                            Ok(request) => Some(AMQPRequest {
-                                delivery_tag: Some(tag),
-                                ..request
-                            }),
-                            Err(e) => {
-                                error!("unable to decode {} as AMQPRequest: {}", s, e);
-                                None
-                            }
-                        }
-                    });
-                send_request
-                    .sink_map_err(|e| {
-                        io::Error::new(io::ErrorKind::Other, format!("error when receiving: {}", e))
-                    }).send_all(data)
-                    .map(|_| ())
-            }),
-    )
+    channel
+        .basic_qos(BasicQosOptions {
+            prefetch_count,
+            global: false,
+            ..Default::default()
+        }).and_then(move |_| {
+            channel.basic_consume(
+                &queue,
+                "amqp-to-test",
+                BasicConsumeOptions::default(),
+                FieldTable::new(),
+            )
+        }).and_then(move |stream| {
+            let data = stream
+                .filter_map(|msg| match String::from_utf8(msg.data) {
+                    Ok(s) => Some((s, msg.delivery_tag)),
+                    Err(e) => {
+                        error!("cannot decode message: {}", e);
+                        None
+                    }
+                }).filter_map(move |(s, tag)| match serde_json::from_str(&s) {
+                    Ok(request) => Some(AMQPRequest {
+                        delivery_tag: Some(tag),
+                        ..request
+                    }),
+                    Err(e) => {
+                        error!("unable to decode {} as AMQPRequest: {}", s, e);
+                        None
+                    }
+                });
+            send_request
+                .sink_map_err(|e| {
+                    io::Error::new(io::ErrorKind::Other, format!("error when receiving: {}", e))
+                }).send_all(data)
+                .map(|_| ())
+        })
 }
 
 // Acks must be sent on the original channel. Sending concurrently
@@ -71,11 +66,10 @@ fn amqp_sender(
     channel: &Channel<TcpStream>,
     ack_channel: &Channel<TcpStream>,
     receive_response: Receiver<AMQPResponse>,
-) -> Box<Future<Item = (), Error = io::Error>> {
+) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
     let channel = channel.clone();
     let ack_channel = ack_channel.clone();
-    Box::new(
-        receive_response
+    receive_response
             .map_err(|_| io::Error::new(io::ErrorKind::Other, ""))  // Dummy
             .for_each(move |mut response| {
                 info!(
@@ -96,7 +90,7 @@ fn amqp_sender(
                         BasicProperties::default(),
                     )
                     .and_then(move |_| ack_channel.basic_ack(delivery_tag, false))
-            }),
+            }
     )
 }
 
@@ -104,10 +98,10 @@ pub fn amqp_process(
     config: &Arc<Configuration>,
     send_request: Sender<AMQPRequest>,
     receive_response: Receiver<AMQPResponse>,
-) -> Box<Future<Item = (), Error = io::Error>> {
-    let client = amqputils::create_client(&Handle::default(), &config.amqp);
+) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
+    let client = amqputils::create_client(&config.amqp);
     let config = config.clone();
-    Box::new(client.and_then(move |client| {
+    client.and_then(move |client| {
         client.create_channel().and_then(move |channel| {
             let ack_channel = channel.clone();
             let receiver = amqputils::declare_exchange_and_queue(&channel, &config.amqp)
@@ -117,5 +111,5 @@ pub fn amqp_process(
                 .and_then(move |channel| amqp_sender(&channel, &ack_channel, receive_response));
             receiver.join(sender).map(|_| ())
         })
-    }))
+    })
 }

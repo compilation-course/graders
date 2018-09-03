@@ -10,7 +10,7 @@ use std::collections::btree_map::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
-use tokio_current_thread;
+use tokio;
 
 #[derive(Deserialize)]
 pub struct TesterConfiguration {
@@ -30,7 +30,7 @@ fn execute(
     config: &TesterConfiguration,
     request: &AMQPRequest,
     cpu_pool: &CpuPool,
-) -> Box<Future<Item = String, Error = errors::Error>> {
+) -> Box<Future<Item = String, Error = errors::Error> + Send + 'static> {
     let test_file = match config.test_files.get(&request.lab) {
         Some(file) => config.dir_in_docker.join(&file),
         None => {
@@ -99,7 +99,7 @@ fn execute_request(
     config: &TesterConfiguration,
     request: AMQPRequest,
     cpu_pool: &CpuPool,
-) -> impl Future<Item = AMQPResponse, Error = ()> {
+) -> impl Future<Item = AMQPResponse, Error = ()> + Send + 'static {
     execute(config, &request, cpu_pool)
         .then(|result| match result {
             Ok(y) => future::ok(y),
@@ -135,13 +135,13 @@ pub fn start_executor(
     config: &Arc<config::Configuration>,
     receive_request: Receiver<AMQPRequest>,
     send_response: Sender<AMQPResponse>,
-) -> Box<Future<Item = (), Error = ()>> {
+) -> Box<Future<Item = (), Error = ()> + Send + 'static> {
     let cpu_pool = CpuPool::new(config.tester.parallelism);
     let config = config.clone();
     Box::new(receive_request.for_each(move |request| {
         debug!("received request {:?}", request);
         let send_response = send_response.clone();
-        tokio_current_thread::spawn(
+        tokio::spawn(
             execute_request(&config.tester, request, &cpu_pool)
                 .and_then(move |response| {
                     send_response.send(response).map_err(|e| {
