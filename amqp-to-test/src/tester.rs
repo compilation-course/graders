@@ -72,6 +72,7 @@ fn execute(
             .arg(&docker_image)
             .args(extra_args)
             .arg(&request.zip_url)
+            .arg(&request.dir)
             .arg(&program)
             .arg(&test_file)
             .stdin(Stdio::null())

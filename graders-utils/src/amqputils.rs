@@ -22,6 +22,7 @@ pub struct AMQPConfiguration {
 pub struct AMQPRequest {
     pub job_name: String,
     pub lab: String,
+    pub dir: String,
     pub zip_url: String,
     pub result_queue: String,
     pub opaque: String,

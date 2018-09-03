@@ -54,6 +54,10 @@ pub struct Opt {
     #[structopt(name = "compiler location")]
     src: String,
 
+    /// Name of the mandatory top-level directory in the zip file
+    #[structopt(name = "top-level directory", parse(from_os_str))]
+    top_level_dir: PathBuf,
+
     /// Test driver command
     #[structopt(name = "test command", parse(from_os_str))]
     test_command: PathBuf,
@@ -67,10 +71,14 @@ fn main() {
     env_logger::init();
     let mut opt = Opt::from_args();
     let tmp = Temp::new_dir().unwrap();
+    let top_level_dir = opt
+        .top_level_dir
+        .to_str()
+        .expect("non-utf8 character in top-level directory");
     if !Path::new(&opt.src).is_dir() {
         if opt.src.ends_with(".zip") {
             info!("Unzipping {:?}", opt.src);
-            match unzip(&tmp.to_path_buf(), &opt.src) {
+            match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir) {
                 Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
                 Err(e) => {
                     outputs::write_error(&opt, &Error::with_chain(e, ZipExtractError));

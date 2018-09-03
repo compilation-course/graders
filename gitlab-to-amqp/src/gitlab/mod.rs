@@ -92,7 +92,10 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
 }
 
 /// Clone and package labs to test. Return a list of (lab, zip base name).
-fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<(String, String)>> {
+fn package(
+    config: &Configuration,
+    hook: &GitlabHook,
+) -> errors::Result<Vec<(String, String, String)>> {
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
     let _repo = clone(&config.gitlab.token, hook, &root)?;
@@ -121,7 +124,11 @@ fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<(Str
             let zip_basename = format!("{}.zip", Uuid::new_v4());
             let zip_file = zip_dir.join(&zip_basename);
             match zip_recursive(&path, &lab.dir, &zip_file) {
-                Ok(_) => to_test.push((lab.name.clone(), zip_basename)),
+                Ok(_) => to_test.push((
+                    lab.name.clone(),
+                    lab.dir.to_string_lossy().to_string(),
+                    zip_basename,
+                )),
                 Err(e) => {
                     error!("cannot package {:?} (lab {}): {}", hook.url(), lab.name, e);
                     match current_thread::block_on_all(poster::post(api::post_status(
@@ -146,11 +153,11 @@ fn package(config: &Configuration, hook: &GitlabHook) -> errors::Result<Vec<(Str
 fn labs_result_to_stream(
     base_url: &Url,
     hook: &GitlabHook,
-    labs: Vec<(String, String)>,
+    labs: Vec<(String, String, String)>,
 ) -> impl Stream<Item = AMQPRequest, Error = ()> + Send + 'static {
     let hook = hook.clone();
     let base_url = base_url.clone();
-    stream::iter_ok(labs.into_iter().map(move |(lab, zip)| {
+    stream::iter_ok(labs.into_iter().map(move |(lab, dir, zip)| {
         AMQPRequest {
             job_name: format!(
                 "[gitlab:{}:{}:{}:{}:{}]",
@@ -161,6 +168,7 @@ fn labs_result_to_stream(
                 &lab
             ),
             lab,
+            dir,
             zip_url: base_url
                 .join("zips/")
                 .unwrap()
