@@ -6,6 +6,7 @@ use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
 use lapin::channel::{
     BasicConsumeOptions, BasicProperties, BasicPublishOptions, BasicQosOptions, Channel,
 };
+use lapin::queue::Queue;
 use lapin::types::FieldTable;
 use serde_json;
 use std::io;
@@ -17,22 +18,23 @@ use tokio::reactor::Handle;
 fn amqp_receiver(
     channel: &Channel<TcpStream>,
     config: &Arc<Configuration>,
+    queue: Queue,
     send_request: Sender<AMQPRequest>,
 ) -> Box<Future<Item = (), Error = io::Error>> {
     let channel = channel.clone();
-    let config = config.clone();
+    let prefetch_count = config.tester.parallelism as u16;
     Box::new(
         channel
-            .basic_qos(&BasicQosOptions {
-                prefetch_count: config.tester.parallelism as u16,
+            .basic_qos(BasicQosOptions {
+                prefetch_count,
                 global: false,
                 ..Default::default()
             }).and_then(move |_| {
                 channel.basic_consume(
-                    &config.amqp.queue,
+                    &queue,
                     "amqp-to-test",
-                    &BasicConsumeOptions::default(),
-                    &FieldTable::new(),
+                    BasicConsumeOptions::default(),
+                    FieldTable::new(),
                 )
             }).and_then(move |stream| {
                 let data = stream
@@ -89,11 +91,11 @@ fn amqp_sender(
                     .basic_publish(
                         "",
                         &queue,
-                        serde_json::to_string(&response).unwrap().as_bytes(),
-                        &BasicPublishOptions::default(),
+                        serde_json::to_string(&response).unwrap().as_bytes().to_vec(),
+                        BasicPublishOptions::default(),
                         BasicProperties::default(),
                     )
-                    .and_then(move |_| ack_channel.basic_ack(delivery_tag))
+                    .and_then(move |_| ack_channel.basic_ack(delivery_tag, false))
             }),
     )
 }
@@ -109,7 +111,7 @@ pub fn amqp_process(
         client.create_channel().and_then(move |channel| {
             let ack_channel = channel.clone();
             let receiver = amqputils::declare_exchange_and_queue(&channel, &config.amqp)
-                .and_then(move |_| amqp_receiver(&channel, &config, send_request));
+                .and_then(move |queue| amqp_receiver(&channel, &config, queue, send_request));
             let sender = client
                 .create_channel()
                 .and_then(move |channel| amqp_sender(&channel, &ack_channel, receive_response));

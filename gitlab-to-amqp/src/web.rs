@@ -16,7 +16,7 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
-use tokio::executor::current_thread;
+use tokio;
 
 static NOT_FOUND: &str = "Not found, try something else";
 
@@ -82,7 +82,7 @@ impl Service for GitlabService {
                             })
                         }).map(move |hook| {
                             trace!("received json and will pass it around: {:?}", hook);
-                            current_thread::spawn(
+                            tokio::spawn(
                                 send_request.clone().send(hook.clone()).map(|_| ()).map_err(
                                     move |e| {
                                         error!("unable to send hook {:?} around: {}", hook, e);

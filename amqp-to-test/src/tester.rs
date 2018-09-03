@@ -10,7 +10,7 @@ use std::collections::btree_map::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
-use tokio::executor::current_thread;
+use tokio_current_thread;
 
 #[derive(Deserialize)]
 pub struct TesterConfiguration {
@@ -99,21 +99,19 @@ fn execute_request(
     config: &TesterConfiguration,
     request: AMQPRequest,
     cpu_pool: &CpuPool,
-) -> Box<Future<Item = AMQPResponse, Error = ()>> {
-    Box::new(
-        execute(config, &request, cpu_pool)
-            .then(|result| match result {
-                Ok(y) => future::ok(y),
-                Err(e) => future::ok(yaml_error(&e)),
-            }).map(|yaml| AMQPResponse {
-                job_name: request.job_name,
-                lab: request.lab,
-                opaque: request.opaque,
-                yaml_result: yaml,
-                result_queue: request.result_queue,
-                delivery_tag: request.delivery_tag.unwrap(),
-            }),
-    )
+) -> impl Future<Item = AMQPResponse, Error = ()> {
+    execute(config, &request, cpu_pool)
+        .then(|result| match result {
+            Ok(y) => future::ok(y),
+            Err(e) => future::ok(yaml_error(&e)),
+        }).map(|yaml| AMQPResponse {
+            job_name: request.job_name,
+            lab: request.lab,
+            opaque: request.opaque,
+            yaml_result: yaml,
+            result_queue: request.result_queue,
+            delivery_tag: request.delivery_tag.unwrap(),
+        })
 }
 
 #[derive(Serialize)]
@@ -143,7 +141,7 @@ pub fn start_executor(
     Box::new(receive_request.for_each(move |request| {
         debug!("received request {:?}", request);
         let send_response = send_response.clone();
-        current_thread::spawn(
+        tokio_current_thread::spawn(
             execute_request(&config.tester, request, &cpu_pool)
                 .and_then(move |response| {
                     send_response.send(response).map_err(|e| {

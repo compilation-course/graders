@@ -20,6 +20,7 @@ extern crate serde_json;
 extern crate serde_yaml;
 extern crate tokio;
 extern crate tokio_core;
+extern crate tokio_current_thread;
 extern crate url;
 extern crate url_serde;
 extern crate uuid;
@@ -40,7 +41,6 @@ use futures_cpupool::CpuPool;
 use std::process;
 use std::sync::Arc;
 use std::thread;
-use tokio::executor::current_thread;
 
 fn configuration() -> errors::Result<Configuration> {
     let yaml = load_yaml!("cli.yml");
@@ -68,7 +68,7 @@ fn run() -> errors::Result<()> {
     let cloned_config = config.clone();
     let cloned_cpu_pool = cpu_pool.clone();
     thread::spawn(move || {
-        if let Err(e) = current_thread::block_on_all({
+        if let Err(e) = tokio_current_thread::block_on_all({
             let packager =
                 gitlab::packager(&cloned_config, &cloned_cpu_pool, receive_hook, send_request);
             let amqp_process = amqp::amqp_process(&cloned_config, receive_request, send_response);

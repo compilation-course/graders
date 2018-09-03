@@ -29,8 +29,8 @@ fn amqp_publisher(
                 channel.basic_publish(
                     &config.amqp.exchange,
                     &config.amqp.routing_key,
-                    serde_json::to_string(&req).unwrap().as_bytes(),
-                    &BasicPublishOptions::default(),
+                    serde_json::to_string(&req).unwrap().as_bytes().to_vec(),
+                    BasicPublishOptions::default(),
                     BasicProperties::default(),
                 )
             }).for_each(|_| future::ok(())),
@@ -47,23 +47,26 @@ fn amqp_receiver(
         channel
             .queue_declare(
                 gitlab::RESULT_QUEUE,
-                &QueueDeclareOptions {
+                QueueDeclareOptions {
                     durable: true,
                     ..Default::default()
                 },
-                &FieldTable::new(),
-            ).and_then(move |_| {
+                FieldTable::new(),
+            ).and_then(move |result_queue| {
                 channel.basic_consume(
-                    gitlab::RESULT_QUEUE,
+                    &result_queue,
                     "gitlab-to-amqp",
-                    &BasicConsumeOptions::default(),
-                    &FieldTable::new(),
+                    BasicConsumeOptions::default(),
+                    FieldTable::new(),
                 )
             }).and_then(move |stream| {
                 info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
                 let data = stream
-                    .and_then(move |msg| channel_clone.basic_ack(msg.delivery_tag).map(|_| msg))
-                    .filter_map(|msg| match String::from_utf8(msg.data) {
+                    .and_then(move |msg| {
+                        channel_clone
+                            .basic_ack(msg.delivery_tag, false)
+                            .map(|_| msg)
+                    }).filter_map(|msg| match String::from_utf8(msg.data) {
                         Ok(s) => Some(s),
                         Err(e) => {
                             error!("unable to decode message as valid utf8 string: {}", e);

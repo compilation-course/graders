@@ -8,13 +8,14 @@ env_logger = "0.5.3"
 error-chain = "0.11.0"
 futures = "0.1.18"
 futures-cpupool = "0.1.8"
-lapin-futures = "0.11.0"
+lapin-futures = "0.13"
 log = "0.4.1"
 serde = "1.0.27"
 serde_derive = "1.0.27"
 serde_json = "1.0.9"
 serde_yaml = "0.7.3"
 tokio = "0.1.1"
+tokio-current-thread = "0.1"
 
 [dependencies.clap]
 features = ["yaml"]
