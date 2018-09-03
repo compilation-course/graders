@@ -9,7 +9,6 @@ RUN cd /tmp/builder/gitlab-to-amqp && OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu/
 FROM debian:stretch
 MAINTAINER Samuel Tardieu <sam@rfc1149.net>
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get -qq update
 COPY --from=builder /tmp/builder/target/release/gitlab-to-amqp /
 EXPOSE 80
 ENTRYPOINT ["/gitlab-to-amqp"]
