@@ -12,7 +12,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get -qq update
 RUN apt-get -y dist-upgrade
 RUN apt-get --no-install-recommends -y install \
-      build-essential ca-certificates clang g++ \
+      build-essential ca-certificates clang clang-format g++ \
       ccache autoconf automake libboost-program-options-dev \
       flex bison valgrind llvm-3.9-dev \
       python3-yaml python3-docopt libssl-dev \
