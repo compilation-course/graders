@@ -30,15 +30,15 @@ struct XQueue {
 }
 
 impl XQueue {
-    fn login(&mut self, handle: &Handle) -> Box<Future<Item = bool, Error = ::errors::Error>> {
-        let client = Client::new(handle);
+    fn login(&mut self) -> Box<Future<Item = bool, Error = ::errors::Error>> {
+        let client = Client::new();
         let url = format!("{}/xqueue/login", self.base_url)
             .parse()
             .into_future()
             .map_err(|e| ::errors::Error::from(e));
         Box::new(
             url.and_then(move |url| client.get(url).map_err(|e| e.into()))
-                .map(|res| res.status() == StatusCode::Ok),
+                .map(|res| res.status() == StatusCode::OK),
         )
     }
 }

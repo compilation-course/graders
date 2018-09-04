@@ -1,3 +1,2 @@
 [workspace]
-# do not include xqueue-to-amqp at this stage
-members = ["builder", "gitlab-to-amqp", "graders-utils", "amqp-to-test"]
+members = ["builder", "gitlab-to-amqp", "graders-utils", "amqp-to-test", "xqueue-to-amqp"]
