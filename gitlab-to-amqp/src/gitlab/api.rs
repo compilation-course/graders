@@ -74,7 +74,8 @@ pub fn post_status(
         config,
         &format!(
             "projects/{}/statuses/{}",
-            hook.project_id, hook.checkout_sha
+            hook.project_id,
+            hook.pushed_sha()
         ),
         &params,
     )
@@ -89,7 +90,8 @@ pub fn post_comment(
         config,
         &format!(
             "projects/{}/repository/commits/{}/comments",
-            hook.project_id, hook.checkout_sha
+            hook.project_id,
+            hook.pushed_sha()
         ),
         &vec![("note", note)],
     )

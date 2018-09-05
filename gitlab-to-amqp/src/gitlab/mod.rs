@@ -28,8 +28,8 @@ pub static RESULT_QUEUE: &str = "gitlab";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabHook {
-    object_kind: String,
-    checkout_sha: String,
+    pub object_kind: String,
+    checkout_sha: Option<String>,
     project_id: u32,
     #[serde(rename = "ref")]
     pub ref_: String,
@@ -46,6 +46,17 @@ pub struct GitlabRepository {
 }
 
 impl GitlabHook {
+    pub fn is_delete(&self) -> bool {
+        self.checkout_sha.is_none()
+    }
+
+    pub fn pushed_sha(&self) -> &str {
+        match self.checkout_sha {
+            Some(ref s) => s,
+            None => panic!(),
+        }
+    }
+
     pub fn url(&self) -> &Url {
         &self.repository.git_http_url
     }
@@ -56,6 +67,22 @@ impl GitlabHook {
         } else {
             None
         }
+    }
+
+    pub fn short_ref(&self) -> &str {
+        self.branch_name().unwrap_or(&self.ref_)
+    }
+
+    pub fn desc(&self) -> String {
+        format!(
+            "{} ({} - {})",
+            self.repository.name,
+            self.short_ref(),
+            match self.checkout_sha {
+                Some(ref s) => &s[..8],
+                None => "<deleted>",
+            }
+        )
     }
 }
 
@@ -74,9 +101,9 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
         let head = repo.head()?;
         trace!("current head: {}", head.shorthand().unwrap_or("<unknown>"));
     }
-    trace!("checkouting {}", hook.checkout_sha);
+    trace!("checkouting {}", hook.pushed_sha());
     {
-        let rev = repo.revparse_single(&hook.checkout_sha)?;
+        let rev = repo.revparse_single(hook.pushed_sha())?;
         repo.checkout_tree(
             &rev,
             Some(
@@ -96,6 +123,7 @@ fn package(
     config: &Configuration,
     hook: &GitlabHook,
 ) -> errors::Result<Vec<(String, String, String)>> {
+    info!("packaging {}", hook.desc());
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
     let _repo = clone(&config.gitlab.token, hook, &root)?;
@@ -109,6 +137,7 @@ fn package(
             .map(|w| path.join(w).is_file())
             .unwrap_or(true)
         {
+            trace!("publishing initial {} status for {}", lab.name, hook.desc());
             match current_thread::block_on_all(poster::post(api::post_status(
                 &config.gitlab,
                 hook,
@@ -146,7 +175,7 @@ fn package(
             }
         }
     }
-    debug!("to test: {:?}", to_test);
+    trace!("to test for {}: {:?}", hook.desc(), to_test);
     Ok(to_test)
 }
 
@@ -164,7 +193,7 @@ fn labs_result_to_stream(
                 &hook.repository.name,
                 &hook.repository.homepage,
                 &hook.ref_,
-                &hook.checkout_sha,
+                hook.pushed_sha(),
                 &lab
             ),
             lab,
