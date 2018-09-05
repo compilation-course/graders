@@ -21,7 +21,6 @@
 
 use futures::{Future, IntoFuture};
 use hyper::{Client, StatusCode};
-use tokio_core::reactor::Handle;
 
 struct XQueue {
     base_url: String,
@@ -35,7 +34,7 @@ impl XQueue {
         let url = format!("{}/xqueue/login", self.base_url)
             .parse()
             .into_future()
-            .map_err(|e| ::errors::Error::from(e));
+            .map_err(::errors::Error::from);
         Box::new(
             url.and_then(move |url| client.get(url).map_err(|e| e.into()))
                 .map(|res| res.status() == StatusCode::OK),

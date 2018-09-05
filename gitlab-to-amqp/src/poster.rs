@@ -12,10 +12,10 @@ pub fn post(
         request.uri(),
         request.method()
     );
-    let request = request.map(|s| Body::from(s));
+    let request = request.map(Body::from);
     let uri = request.uri().clone();
     let method = request.method().clone();
-    let post = client
+    client
         .request(request)
         .map(move |r| {
             trace!("request to {} ({}) returned {}", uri, method, r.status());
@@ -23,6 +23,5 @@ pub fn post(
         }).map_err(|e| {
             error!("could not post request: {}", e);
             e
-        });
-    post
+        })
 }

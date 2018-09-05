@@ -70,28 +70,28 @@ fn amqp_sender(
     let channel = channel.clone();
     let ack_channel = ack_channel.clone();
     receive_response
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, ""))  // Dummy
-            .for_each(move |mut response| {
-                info!(
-                    "sending response {} to queue {}",
-                    response.job_name,
-                    response.result_queue
-                );
-                let queue = mem::replace(&mut response.result_queue, "".to_owned());
-                let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
-                let channel = channel.clone();
-                let ack_channel = ack_channel.clone();
-                channel
-                    .basic_publish(
-                        "",
-                        &queue,
-                        serde_json::to_string(&response).unwrap().as_bytes().to_vec(),
-                        BasicPublishOptions::default(),
-                        BasicProperties::default(),
-                    )
-                    .and_then(move |_| ack_channel.basic_ack(delivery_tag, false))
-            }
-    )
+        .map_err(|_| io::Error::new(io::ErrorKind::Other, "")) // Dummy
+        .for_each(move |mut response| {
+            info!(
+                "sending response {} to queue {}",
+                response.job_name, response.result_queue
+            );
+            let queue = mem::replace(&mut response.result_queue, "".to_owned());
+            let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
+            let channel = channel.clone();
+            let ack_channel = ack_channel.clone();
+            channel
+                .basic_publish(
+                    "",
+                    &queue,
+                    serde_json::to_string(&response)
+                        .unwrap()
+                        .as_bytes()
+                        .to_vec(),
+                    BasicPublishOptions::default(),
+                    BasicProperties::default(),
+                ).and_then(move |_| ack_channel.basic_ack(delivery_tag, false))
+        })
 }
 
 pub fn amqp_process(
