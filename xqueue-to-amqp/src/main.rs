@@ -1,6 +1,6 @@
 extern crate env_logger;
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 extern crate futures;
 extern crate futures_timer;
 extern crate http;
@@ -15,18 +15,10 @@ extern crate toml;
 
 mod xqueue;
 
+use failure::Error;
 use std::process;
 
-mod errors {
-    error_chain! {
-        foreign_links {
-            Hyper(::hyper::Error);
-            URI(::http::uri::InvalidUri);
-        }
-    }
-
-    pub type Future<T> = ::futures::Future<Item = T, Error = Error>;
-}
+pub type Future<T> = ::futures::Future<Item = T, Error = Error>;
 
 #[derive(Deserialize)]
 struct Config {
@@ -42,6 +34,6 @@ fn main() {
     }
 }
 
-fn run() -> errors::Result<()> {
-    Err("unimplemented".into())
+fn run() -> Result<(), Error> {
+    Err(format_err!("unimplemented"))
 }
