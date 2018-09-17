@@ -2,7 +2,7 @@ pub mod api;
 
 use self::api::State;
 use config::Configuration;
-use errors;
+use failure::Error;
 use futures::stream::{self, Stream};
 use futures::sync::mpsc::{Receiver, Sender};
 use futures::{Future, Sink};
@@ -86,7 +86,7 @@ impl GitlabHook {
     }
 }
 
-fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repository> {
+fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error> {
     let token_for_clone = token.to_owned();
     let mut callbacks = RemoteCallbacks::new();
     callbacks
@@ -122,7 +122,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> errors::Result<Repositor
 fn package(
     config: &Configuration,
     hook: &GitlabHook,
-) -> errors::Result<Vec<(String, String, String)>> {
+) -> Result<Vec<(String, String, String)>, Error> {
     info!("packaging {}", hook.desc());
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
@@ -242,6 +242,6 @@ pub fn to_opaque(hook: &GitlabHook, zip_file_name: &str) -> String {
     serde_json::to_string(&(hook, zip_file_name)).unwrap()
 }
 
-pub fn from_opaque(opaque: &str) -> errors::Result<(GitlabHook, String)> {
+pub fn from_opaque(opaque: &str) -> Result<(GitlabHook, String), Error> {
     Ok(serde_json::from_str(opaque)?)
 }

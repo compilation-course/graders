@@ -1,4 +1,4 @@
-use errors;
+use failure::Error;
 use graders_utils::amqputils::AMQPConfiguration;
 use serde_yaml;
 use std::fs::{self, File};
@@ -53,14 +53,14 @@ impl LabConfiguration {
     }
 }
 
-pub fn load_configuration(file: &str) -> errors::Result<Configuration> {
+pub fn load_configuration(file: &str) -> Result<Configuration, Error> {
     let mut f = File::open(file)?;
     let mut content = Vec::new();
     f.read_to_end(&mut content)?;
     Ok(serde_yaml::from_slice(&content)?)
 }
 
-pub fn setup_dirs(config: &Configuration) -> errors::Result<()> {
+pub fn setup_dirs(config: &Configuration) -> Result<(), Error> {
     let zip_dir = Path::new(&config.package.zip_dir);
     if !zip_dir.is_dir() {
         fs::create_dir(zip_dir)?;

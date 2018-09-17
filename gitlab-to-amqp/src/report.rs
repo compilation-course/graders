@@ -1,5 +1,5 @@
 use config::Configuration;
-use errors::Result;
+use failure::Error;
 use gitlab;
 use gitlab::api::{self, State};
 use graders_utils::amqputils::AMQPResponse;
@@ -44,7 +44,7 @@ fn signal_to_explanation(signal: u32) -> &'static str {
     }
 }
 
-fn yaml_to_markdown(lab: &str, yaml: &str) -> Result<(String, usize, usize)> {
+fn yaml_to_markdown(lab: &str, yaml: &str) -> Result<(String, usize, usize), Error> {
     let report: Report = serde_yaml::from_str(yaml)?;
     if let Some(explanation) = report.explanation {
         warn!("problem during handling of {}: {}", lab, explanation);
@@ -119,7 +119,7 @@ There has been an error during the test for {}:
 pub fn response_to_post(
     config: &Configuration,
     response: &AMQPResponse,
-) -> Result<Vec<Request<String>>> {
+) -> Result<Vec<Request<String>>, Error> {
     let (report, grade, max_grade) = yaml_to_markdown(&response.lab, &response.yaml_result)?;
     let (hook, zip) = gitlab::from_opaque(&response.opaque)?;
     match gitlab::remove_zip_file(config, &zip) {

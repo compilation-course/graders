@@ -1,8 +1,7 @@
 #[macro_use]
 extern crate clap;
 extern crate env_logger;
-#[macro_use]
-extern crate error_chain;
+extern crate failure;
 extern crate futures;
 extern crate futures_cpupool;
 extern crate git2;
@@ -24,7 +23,6 @@ extern crate uuid;
 
 mod amqp;
 mod config;
-mod errors;
 mod gitlab;
 mod poster;
 mod report;
@@ -32,6 +30,7 @@ mod web;
 
 use clap::App;
 use config::Configuration;
+use failure::Error;
 use futures::sync::mpsc;
 use futures::*;
 use futures_cpupool::CpuPool;
@@ -39,7 +38,7 @@ use std::process;
 use std::sync::Arc;
 use tokio::runtime::current_thread;
 
-fn configuration() -> errors::Result<Configuration> {
+fn configuration() -> Result<Configuration, Error> {
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
     let config = config::load_configuration(matches.value_of("config").unwrap())?;
@@ -47,7 +46,7 @@ fn configuration() -> errors::Result<Configuration> {
     Ok(config)
 }
 
-fn run() -> errors::Result<()> {
+fn run() -> Result<(), Error> {
     let config = Arc::new(configuration()?);
     info!(
         "configured for labs {:?}",
