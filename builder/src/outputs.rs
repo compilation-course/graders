@@ -1,8 +1,7 @@
-use error_chain::ChainedError;
-use errors::Error;
+use failure::Error;
 use serde_yaml;
 use std::fs::File;
-use std::io::{Result, Write};
+use std::io::{self, Write};
 use std::path::Path;
 use std::process::exit;
 
@@ -16,7 +15,7 @@ struct Output {
     explanation: String,
 }
 
-fn write_file<P: AsRef<Path>>(file: P, output: &str) -> Result<()> {
+fn write_file<P: AsRef<Path>>(file: P, output: &str) -> io::Result<()> {
     let mut file = File::create(file)?;
     file.write_all(output.as_bytes())
 }
@@ -38,7 +37,7 @@ pub fn write_error(opt: &Opt, error: &Error) {
         &serde_yaml::to_string(&Output {
             grade: 0,
             max_grade: 1,
-            explanation: error.display_chain().to_string(),
+            explanation: error.to_string(),
         }).unwrap(),
     );
 }

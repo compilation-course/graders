@@ -1,10 +1,13 @@
 use super::Opt;
-use errors::ErrorKind::RunError;
-use errors::Result;
+use failure::{Error, ResultExt};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String> {
+#[derive(Fail, Debug)]
+#[fail(display = "fatal error when running test: {}", _0)]
+pub struct RunError(String);
+
+pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, Error> {
     info!(
         "executing {:?} with test source {:?} on executable {:?}",
         opt.test_command, opt.test_file, dtiger
@@ -20,12 +23,10 @@ pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String> {
         .env("DTIGER", dtiger)
         .stdin(Stdio::null())
         .output()
-        .map_err(|e| {
-            format!(
-                "cannot run tests {:?} -y {:?}: {}",
-                opt.test_command, opt.test_file, e
-            )
-        })?;
+        .context(format!(
+            "cannot run tests {:?} -y {:?}",
+            opt.test_command, opt.test_file
+        ))?;
     if output.status.code() == Some(0) {
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
@@ -33,17 +34,15 @@ pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String> {
             "received status code {:?} when running tests",
             output.status.code()
         );
-        bail!(RunError(
-            String::from_utf8_lossy(&output.stderr).to_string()
-        ))
+        Err(RunError(String::from_utf8_lossy(&output.stderr).to_string()).into())
     }
 }
 
-fn exec(opt: &Opt, command: &str) -> Result<()> {
+fn exec(opt: &Opt, command: &str) -> Result<(), Error> {
     exec_args(opt, command, &[])
 }
 
-fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<()> {
+fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), Error> {
     info!("executing {} with args {:?}", command, args);
     let output = Command::new(command)
         .args(args)
@@ -51,7 +50,7 @@ fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<()> {
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .output()
-        .map_err(|e| format!("cannot build program in {:?}: {}", opt.src, e))?;
+        .context(format!("cannot build program in {:?}", opt.src))?;
     trace!(
         "command {} with args {:?} terminated with status {:?}",
         command,
@@ -61,15 +60,15 @@ fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<()> {
     if output.status.code() == Some(0) {
         Ok(())
     } else {
-        bail!(String::from_utf8_lossy(&output.stderr).to_string())
+        Err(format_err!("{}", String::from_utf8_lossy(&output.stderr)))
     }
 }
 
-fn make(opt: &Opt) -> Result<()> {
+fn make(opt: &Opt) -> Result<(), Error> {
     exec(opt, "make")
 }
 
-fn configure(opt: &Opt) -> Result<()> {
+fn configure(opt: &Opt) -> Result<(), Error> {
     let configure = if let Some(ref d) = opt.with_llvm {
         exec_args(
             opt,
@@ -82,11 +81,11 @@ fn configure(opt: &Opt) -> Result<()> {
     configure.and_then(|_| make(opt))
 }
 
-fn autogen(opt: &Opt) -> Result<()> {
+fn autogen(opt: &Opt) -> Result<(), Error> {
     exec(opt, "./autogen.sh").and_then(|_| configure(opt))
 }
 
-pub fn build(opt: &Opt) -> Result<()> {
+pub fn build(opt: &Opt) -> Result<(), Error> {
     make(opt)
         .or_else(|_| configure(opt))
         .or_else(|_| autogen(opt))

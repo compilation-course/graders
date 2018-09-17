@@ -1,6 +1,8 @@
 extern crate env_logger;
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
+#[macro_use]
+extern crate failure_derive;
 extern crate graders_utils;
 #[macro_use]
 extern crate log;
@@ -12,15 +14,21 @@ extern crate serde_yaml;
 extern crate structopt;
 
 mod commands;
-mod errors;
 mod outputs;
 
-use errors::Error;
-use errors::ErrorKind::*;
 use graders_utils::ziputils::unzip;
 use mktemp::Temp;
+use std::io;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
+
+#[derive(Fail, Debug)]
+#[fail(display = "unknown repository source {}", _0)]
+struct UnknownRepositorySource(String);
+
+#[derive(Fail, Debug)]
+#[fail(display = "zip extract error")]
+struct ZipExtractError(#[cause] io::Error);
 
 /// Compile the compiler from the given directory, set env
 /// DTIGER environment variable and run the tests using the
@@ -81,7 +89,7 @@ fn main() {
             match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir) {
                 Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
                 Err(e) => {
-                    outputs::write_error(&opt, &Error::with_chain(e, ZipExtractError));
+                    outputs::write_error(&opt, &ZipExtractError(e).into());
                     return;
                 }
             }
