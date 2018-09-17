@@ -1,6 +1,5 @@
 use config;
-use errors::ErrorKind::ExecutionError;
-use errors::{self, ResultExt};
+use failure::{Error, ResultExt};
 use futures::sync::mpsc::{Receiver, Sender};
 use futures::{future, Future, Sink, Stream};
 use futures_cpupool::CpuPool;
@@ -11,6 +10,10 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use tokio;
+
+#[derive(Fail, Debug)]
+#[fail(display = "Execution error: {}", _0)]
+pub struct ExecutionError(String);
 
 #[derive(Deserialize)]
 pub struct TesterConfiguration {
@@ -30,16 +33,15 @@ fn execute(
     config: &TesterConfiguration,
     request: &AMQPRequest,
     cpu_pool: &CpuPool,
-) -> Box<Future<Item = String, Error = errors::Error> + Send + 'static> {
+) -> Box<Future<Item = String, Error = Error> + Send + 'static> {
     let test_file = match config.test_files.get(&request.lab) {
         Some(file) => config.dir_in_docker.join(&file),
         None => {
-            return Box::new(future::err(
-                format!(
-                    "unable to find configuration for lab {} for {}",
-                    request.lab, request.job_name
-                ).into(),
-            ))
+            return Box::new(future::err(format_err!(
+                "unable to find configuration for lab {} for {}",
+                request.lab,
+                request.job_name
+            )))
         }
     };
     let request = request.clone();
@@ -77,7 +79,7 @@ fn execute(
             .arg(&test_file)
             .stdin(Stdio::null())
             .output()
-            .chain_err(|| ExecutionError("cannot run command".to_owned()))?;
+            .context("cannot run command")?;
         if output.status.code() == Some(0) {
             info!(
                 "docker command for {} finished succesfully",
@@ -123,7 +125,7 @@ struct ExecutionErrorReport {
     explanation: String,
 }
 
-fn yaml_error(error: &errors::Error) -> String {
+fn yaml_error(error: &Error) -> String {
     serde_yaml::to_string(&ExecutionErrorReport {
         grade: 0,
         max_grade: 1,

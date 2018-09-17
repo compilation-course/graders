@@ -1,4 +1,4 @@
-use errors;
+use failure::Error;
 use graders_utils::amqputils::AMQPConfiguration;
 use serde_yaml;
 use std::fs::File;
@@ -11,7 +11,7 @@ pub struct Configuration {
     pub tester: TesterConfiguration,
 }
 
-pub fn load_configuration(file: &str) -> errors::Result<Configuration> {
+pub fn load_configuration(file: &str) -> Result<Configuration, Error> {
     let mut f = File::open(file)?;
     let mut content = Vec::new();
     f.read_to_end(&mut content)?;
