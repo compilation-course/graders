@@ -48,7 +48,7 @@ pub fn unzip(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf> {
 fn unzip_url(dir: &PathBuf, url: &str, prefix: &str) -> Result<PathBuf> {
     let mut zip = reqwest::get(url)
         .map_err(|e| Error::new(ErrorKind::Other, format!("cannot retrieve {}: {}", url, e)))?;
-    if zip.status() != StatusCode::Ok {
+    if zip.status() != StatusCode::OK {
         warn!("could not retrieve {}: {}", url, zip.status());
         return Err(Error::new(
             ErrorKind::Other,
