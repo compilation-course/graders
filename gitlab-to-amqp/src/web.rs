@@ -76,7 +76,8 @@ impl Service for GitlabService {
                                 error!("error when decoding body: {}", e);
                                 io::Error::new(io::ErrorKind::Other, e)
                             })
-                        }).map(move |hook| {
+                        })
+                        .map(move |hook| {
                             if hook.object_kind != "push" {
                                 trace!(
                                     "received unknown object kind for {}: {}",
@@ -118,12 +119,14 @@ impl Service for GitlabService {
                                     Vec::with_capacity(zip_file.metadata()?.len() as usize);
                                 File::open(&zip_file)?.read_to_end(&mut content)?;
                                 Ok(content)
-                            }).map(|content| {
+                            })
+                            .map(|content| {
                                 Response::builder()
                                     .header(
                                         CONTENT_TYPE,
                                         HeaderValue::from_static("application/zip"),
-                                    ).header(CONTENT_LENGTH, content.len())
+                                    )
+                                    .header(CONTENT_LENGTH, content.len())
                                     .body(Body::from(content))
                                     .unwrap()
                             }),

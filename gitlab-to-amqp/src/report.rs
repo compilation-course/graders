@@ -89,7 +89,8 @@ There has been an error during the test for {}:
                                     .map(|s| format!(" [{}]", signal_to_explanation(s)))
                                     .unwrap_or_else(|| "".to_owned()),
                             )
-                        }).collect::<Vec<_>>()
+                        })
+                        .collect::<Vec<_>>()
                         .join("\n"),
                 );
                 explanation
@@ -105,7 +106,8 @@ There has been an error during the test for {}:
                 pass_fail(group.grade, group.max_grade),
                 tests
             )
-        }).collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
         .join("\n");
     let diagnostic = format!(
         "## Failed tests report for {} ({})\n\n{}",

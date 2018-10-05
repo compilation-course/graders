@@ -31,7 +31,8 @@ fn amqp_publisher(
                 BasicPublishOptions::default(),
                 BasicProperties::default(),
             )
-        }).for_each(|_| future::ok(()))
+        })
+        .for_each(|_| future::ok(()))
 }
 
 fn amqp_receiver(
@@ -48,27 +49,31 @@ fn amqp_receiver(
                 ..Default::default()
             },
             FieldTable::new(),
-        ).and_then(move |result_queue| {
+        )
+        .and_then(move |result_queue| {
             channel.basic_consume(
                 &result_queue,
                 "gitlab-to-amqp",
                 BasicConsumeOptions::default(),
                 FieldTable::new(),
             )
-        }).and_then(move |stream| {
+        })
+        .and_then(move |stream| {
             info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
             let data = stream
                 .and_then(move |msg| {
                     channel_clone
                         .basic_ack(msg.delivery_tag, false)
                         .map(|_| msg)
-                }).filter_map(|msg| match String::from_utf8(msg.data) {
+                })
+                .filter_map(|msg| match String::from_utf8(msg.data) {
                     Ok(s) => Some(s),
                     Err(e) => {
                         error!("unable to decode message as valid utf8 string: {}", e);
                         None
                     }
-                }).filter_map(|s| match serde_json::from_str::<AMQPResponse>(&s) {
+                })
+                .filter_map(|s| match serde_json::from_str::<AMQPResponse>(&s) {
                     Ok(response) => {
                         trace!("received response for {}", response.job_name);
                         Some(response)
@@ -82,7 +87,8 @@ fn amqp_receiver(
                 .sink_map_err(|e| {
                     warn!("sink error: {}", e);
                     io::Error::new(io::ErrorKind::Other, format!("sink error: {}", e))
-                }).send_all(data)
+                })
+                .send_all(data)
                 .map(|_| {
                     warn!(
                         "terminating listening onto the {} queue",
@@ -101,15 +107,13 @@ pub fn amqp_process(
     let client = amqputils::create_client(&config.amqp);
     let config = config.clone();
     client.and_then(move |client| {
-        let publisher =
-            client
-                .create_channel()
-                .and_then(move |channel| {
-                    amqputils::declare_exchange_and_queue(&channel, &config.amqp)
-                        .map(|_| (channel, config))
-                }).and_then(move |(channel, config)| {
-                    amqp_publisher(&channel, &config, receive_request)
-                });
+        let publisher = client
+            .create_channel()
+            .and_then(move |channel| {
+                amqputils::declare_exchange_and_queue(&channel, &config.amqp)
+                    .map(|_| (channel, config))
+            })
+            .and_then(move |(channel, config)| amqp_publisher(&channel, &config, receive_request));
         let receiver = client
             .create_channel()
             .and_then(|channel| amqp_receiver(&channel, send_response));

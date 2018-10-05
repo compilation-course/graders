@@ -55,7 +55,8 @@ pub fn create_client(
                 ()
             }));
             client
-        }).map_err(move |e| {
+        })
+        .map_err(move |e| {
             warn!("error when connecting AMQP client to {}: {}", dest, e);
             e
         })
@@ -70,7 +71,8 @@ pub fn declare_exchange_and_queue(
     declare_exchange(&channel, &config)
         .and_then(move |_| {
             declare_queue(&channel, &config).map(move |queue| (channel, config, queue))
-        }).and_then(move |(channel, config, queue)| bind_queue(&channel, &config).map(|()| queue))
+        })
+        .and_then(move |(channel, config, queue)| bind_queue(&channel, &config).map(|()| queue))
 }
 
 fn declare_exchange(
@@ -87,7 +89,8 @@ fn declare_exchange(
                 ..Default::default()
             },
             FieldTable::new(),
-        ).map_err(move |e| {
+        )
+        .map_err(move |e| {
             error!("cannot declare exchange {}: {}", exchange, e);
             e
         })
@@ -106,7 +109,8 @@ fn declare_queue(
                 ..Default::default()
             },
             FieldTable::new(),
-        ).map_err(move |e| {
+        )
+        .map_err(move |e| {
             error!("could not declare queue {}: {}", queue, e);
             e
         })
@@ -126,7 +130,8 @@ fn bind_queue(
             &routing_key,
             QueueBindOptions::default(),
             FieldTable::new(),
-        ).map_err(move |e| {
+        )
+        .map_err(move |e| {
             error!(
                 "could not bind queue {} to exchange {} using routing key {}: {}",
                 queue, exchange, routing_key, e

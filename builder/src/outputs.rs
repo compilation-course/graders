@@ -38,6 +38,7 @@ pub fn write_error(opt: &Opt, error: &Error) {
             grade: 0,
             max_grade: 1,
             explanation: error.to_string(),
-        }).unwrap(),
+        })
+        .unwrap(),
     );
 }

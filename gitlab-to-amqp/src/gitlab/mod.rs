@@ -230,8 +230,10 @@ pub fn packager(
                     cpu_pool
                         .spawn_fn(move || package(&config, &clone_hook).map_err(|_| ()))
                         .map(move |labs| labs_result_to_stream(&base_url, &hook, labs))
-                }).flatten(),
-        ).map(|_| ())
+                })
+                .flatten(),
+        )
+        .map(|_| ())
 }
 
 pub fn remove_zip_file(config: &Configuration, zip: &str) -> io::Result<()> {

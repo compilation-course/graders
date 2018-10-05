@@ -20,7 +20,8 @@ pub fn post(
         .map(move |r| {
             trace!("request to {} ({}) returned {}", uri, method, r.status());
             r.status()
-        }).map_err(|e| {
+        })
+        .map_err(|e| {
             error!("could not post request: {}", e);
             e
         })

@@ -27,14 +27,16 @@ fn amqp_receiver(
             prefetch_count,
             global: false,
             ..Default::default()
-        }).and_then(move |_| {
+        })
+        .and_then(move |_| {
             channel.basic_consume(
                 &queue,
                 "amqp-to-test",
                 BasicConsumeOptions::default(),
                 FieldTable::new(),
             )
-        }).and_then(move |stream| {
+        })
+        .and_then(move |stream| {
             let data = stream
                 .filter_map(|msg| match String::from_utf8(msg.data) {
                     Ok(s) => Some((s, msg.delivery_tag)),
@@ -42,7 +44,8 @@ fn amqp_receiver(
                         error!("cannot decode message: {}", e);
                         None
                     }
-                }).filter_map(move |(s, tag)| match serde_json::from_str(&s) {
+                })
+                .filter_map(move |(s, tag)| match serde_json::from_str(&s) {
                     Ok(request) => Some(AMQPRequest {
                         delivery_tag: Some(tag),
                         ..request
@@ -55,7 +58,8 @@ fn amqp_receiver(
             send_request
                 .sink_map_err(|e| {
                     io::Error::new(io::ErrorKind::Other, format!("error when receiving: {}", e))
-                }).send_all(data)
+                })
+                .send_all(data)
                 .map(|_| ())
         })
 }
@@ -90,7 +94,8 @@ fn amqp_sender(
                         .to_vec(),
                     BasicPublishOptions::default(),
                     BasicProperties::default(),
-                ).and_then(move |_| ack_channel.basic_ack(delivery_tag, false))
+                )
+                .and_then(move |_| ack_channel.basic_ack(delivery_tag, false))
         })
 }
 
