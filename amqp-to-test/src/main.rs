@@ -1,28 +1,16 @@
 #[macro_use]
-extern crate clap;
-extern crate env_logger;
-#[macro_use]
 extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-extern crate futures;
-extern crate futures_cpupool;
-extern crate graders_utils;
 extern crate lapin_futures as lapin;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
-extern crate serde_yaml;
-extern crate tokio;
-extern crate tokio_current_thread;
 
 mod amqp;
 mod config;
 mod tester;
 
-use clap::App;
+use clap::{load_yaml, App};
 use config::Configuration;
 use failure::Error;
 use futures::sync::mpsc;

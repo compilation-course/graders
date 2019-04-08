@@ -2,6 +2,7 @@
 authors = ["Samuel Tardieu <sam@rfc1149.net>"]
 name = "graders-utils"
 version = "0.1.0"
+edition = "2018"
 
 [dependencies]
 failure = "0.1.5"

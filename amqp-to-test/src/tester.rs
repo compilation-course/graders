@@ -1,4 +1,3 @@
-use config;
 use failure::{Error, ResultExt};
 use futures::sync::mpsc::{Receiver, Sender};
 use futures::{future, Future, Sink, Stream};
@@ -10,6 +9,8 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use tokio;
+
+use crate::config;
 
 #[derive(Fail, Debug)]
 #[fail(display = "Execution error: {}", _0)]

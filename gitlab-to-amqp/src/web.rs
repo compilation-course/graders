@@ -1,8 +1,6 @@
-use config::Configuration;
 use futures::sync::mpsc::Sender;
 use futures::*;
 use futures_cpupool::CpuPool;
-use gitlab::GitlabHook;
 use graders_utils::fileutils;
 use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::service::Service;
@@ -14,6 +12,9 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 use tokio;
+
+use crate::config::Configuration;
+use crate::gitlab::GitlabHook;
 
 pub fn web_server(
     cpu_pool: &CpuPool,

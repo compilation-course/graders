@@ -1,10 +1,11 @@
-use super::GitlabHook;
-use config::GitlabConfiguration;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::Request;
 use std::borrow::Borrow;
 use std::fmt;
 use url::{form_urlencoded, Url};
+
+use super::GitlabHook;
+use crate::config::GitlabConfiguration;
 
 fn base_api(config: &GitlabConfiguration) -> Url {
     config.base_url.join("api/v4/").unwrap()

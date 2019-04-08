@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use std::ffi::OsStr;
 use std::path::{Component, Path};
 

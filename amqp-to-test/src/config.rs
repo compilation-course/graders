@@ -3,7 +3,8 @@ use graders_utils::amqputils::AMQPConfiguration;
 use serde_yaml;
 use std::fs::File;
 use std::io::Read;
-use tester::TesterConfiguration;
+
+use crate::tester::TesterConfiguration;
 
 #[derive(Deserialize)]
 pub struct Configuration {

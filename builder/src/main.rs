@@ -1,17 +1,11 @@
-extern crate env_logger;
 #[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate failure_derive;
-extern crate graders_utils;
 #[macro_use]
 extern crate log;
-extern crate mktemp;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_yaml;
-#[macro_use]
-extern crate structopt;
 
 mod commands;
 mod outputs;

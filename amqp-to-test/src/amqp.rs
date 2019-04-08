@@ -1,4 +1,3 @@
-use config::Configuration;
 use futures::future::Future;
 use futures::sync::mpsc::{Receiver, Sender};
 use futures::{Sink, Stream};
@@ -12,6 +11,8 @@ use serde_json;
 use std::mem;
 use std::sync::Arc;
 use tokio::net::TcpStream;
+
+use crate::config::Configuration;
 
 fn amqp_receiver(
     channel: &Channel<TcpStream>,

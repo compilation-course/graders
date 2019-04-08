@@ -1,18 +1,18 @@
-use config::Configuration;
 use failure::format_err;
 use futures::future::{self, Future};
 use futures::sync::mpsc::{Receiver, Sender};
 use futures::{Sink, Stream};
-use gitlab;
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
 use lapin::channel::{
     BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
 use serde_json;
-use std::io;
 use std::sync::Arc;
 use tokio::net::TcpStream;
+
+use crate::config::Configuration;
+use crate::gitlab;
 
 fn amqp_publisher(
     channel: &Channel<TcpStream>,

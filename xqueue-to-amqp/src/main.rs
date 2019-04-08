@@ -1,17 +1,10 @@
-extern crate env_logger;
 #[macro_use]
 extern crate failure;
-extern crate futures;
-extern crate futures_timer;
-extern crate http;
-extern crate hyper;
-extern crate lapin_futures;
+extern crate lapin_futures as lapin;
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
-extern crate toml;
 
 mod xqueue;
 

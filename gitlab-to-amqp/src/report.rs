@@ -1,10 +1,11 @@
-use config::Configuration;
 use failure::Error;
-use gitlab;
 use gitlab::api::{self, State};
 use graders_utils::amqputils::AMQPResponse;
 use hyper::Request;
 use serde_yaml;
+
+use crate::config::Configuration;
+use crate::gitlab;
 
 #[derive(Deserialize)]
 pub struct Report {

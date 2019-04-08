@@ -1,7 +1,6 @@
 pub mod api;
 
 use self::api::State;
-use config::Configuration;
 use failure::Error;
 use futures::stream::{self, Stream};
 use futures::sync::mpsc::{Receiver, Sender};
@@ -12,7 +11,6 @@ use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use graders_utils::amqputils::AMQPRequest;
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
-use poster;
 use serde_json;
 use std::fs;
 use std::io;
@@ -22,6 +20,9 @@ use tokio::runtime::current_thread;
 use url::Url;
 use url_serde;
 use uuid::Uuid;
+
+use crate::config::Configuration;
+use crate::poster;
 
 static GITLAB_USERNAME: &str = "grader";
 pub static RESULT_QUEUE: &str = "gitlab";
