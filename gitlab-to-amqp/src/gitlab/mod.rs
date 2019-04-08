@@ -131,11 +131,12 @@ fn package(
     let mut to_test = Vec::new();
     for lab in config.labs.iter().filter(|l| l.is_enabled()) {
         let path = root.join(&lab.base).join(&lab.dir);
-        if path.is_dir() && lab
-            .witness
-            .clone()
-            .map(|w| path.join(w).is_file())
-            .unwrap_or(true)
+        if path.is_dir()
+            && lab
+                .witness
+                .clone()
+                .map(|w| path.join(w).is_file())
+                .unwrap_or(true)
         {
             trace!("publishing initial {} status for {}", lab.name, hook.desc());
             match current_thread::block_on_all(poster::post(api::post_status(

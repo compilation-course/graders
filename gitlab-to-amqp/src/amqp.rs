@@ -1,4 +1,5 @@
 use config::Configuration;
+use failure::format_err;
 use futures::future::{self, Future};
 use futures::sync::mpsc::{Receiver, Sender};
 use futures::{Sink, Stream};
@@ -17,7 +18,7 @@ fn amqp_publisher(
     channel: &Channel<TcpStream>,
     config: &Arc<Configuration>,
     receive_request: Receiver<AMQPRequest>,
-) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
+) -> impl Future<Item = (), Error = lapin::error::Error> + Send + 'static {
     let channel = channel.clone();
     let config = config.clone();
     receive_request
@@ -38,7 +39,7 @@ fn amqp_publisher(
 fn amqp_receiver(
     channel: &Channel<TcpStream>,
     send_response: Sender<AMQPResponse>,
-) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
+) -> impl Future<Item = (), Error = failure::Error> + Send + 'static {
     let channel = channel.clone();
     let channel_clone = channel.clone();
     channel
@@ -58,6 +59,7 @@ fn amqp_receiver(
                 FieldTable::new(),
             )
         })
+        .map_err(|e| format_err!("{}", e))
         .and_then(move |stream| {
             info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
             let data = stream
@@ -86,7 +88,7 @@ fn amqp_receiver(
             send_response
                 .sink_map_err(|e| {
                     warn!("sink error: {}", e);
-                    io::Error::new(io::ErrorKind::Other, format!("sink error: {}", e))
+                    format_err!("sink error: {}", e)
                 })
                 .send_all(data)
                 .map(|_| {
@@ -103,7 +105,7 @@ pub fn amqp_process(
     config: &Arc<Configuration>,
     receive_request: Receiver<AMQPRequest>,
     send_response: Sender<AMQPResponse>,
-) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
+) -> impl Future<Item = (), Error = failure::Error> + Send + 'static {
     let client = amqputils::create_client(&config.amqp);
     let config = config.clone();
     client.and_then(move |client| {
@@ -116,7 +118,8 @@ pub fn amqp_process(
             .and_then(move |(channel, config)| amqp_publisher(&channel, &config, receive_request));
         let receiver = client
             .create_channel()
+            .map_err(|e| e.into())
             .and_then(|channel| amqp_receiver(&channel, send_response));
-        publisher.join(receiver).map(|_| ())
+        publisher.map_err(|e| e.into()).join(receiver).map(|_| ())
     })
 }

@@ -43,11 +43,7 @@ struct ZipExtractError(#[cause] io::Error);
 #[structopt(name = "builder")]
 pub struct Opt {
     /// Use a non-standard LLVM
-    #[structopt(
-        name = "llvm lib directory",
-        long = "with-llvm",
-        parse(from_os_str)
-    )]
+    #[structopt(name = "llvm lib directory", long = "with-llvm", parse(from_os_str))]
     with_llvm: Option<PathBuf>,
 
     /// Run tests in verbose mode

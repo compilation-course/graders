@@ -1,3 +1,4 @@
+extern crate failure;
 extern crate futures;
 extern crate lapin_futures as lapin;
 #[macro_use]

@@ -9,7 +9,6 @@ use lapin::channel::{
 use lapin::queue::Queue;
 use lapin::types::FieldTable;
 use serde_json;
-use std::io;
 use std::mem;
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -19,7 +18,7 @@ fn amqp_receiver(
     config: &Arc<Configuration>,
     queue: Queue,
     send_request: Sender<AMQPRequest>,
-) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
+) -> impl Future<Item = (), Error = failure::Error> + Send + 'static {
     let channel = channel.clone();
     let prefetch_count = config.tester.parallelism as u16;
     channel
@@ -36,6 +35,7 @@ fn amqp_receiver(
                 FieldTable::new(),
             )
         })
+        .map_err(|e| e.into())
         .and_then(move |stream| {
             let data = stream
                 .filter_map(|msg| match String::from_utf8(msg.data) {
@@ -56,9 +56,7 @@ fn amqp_receiver(
                     }
                 });
             send_request
-                .sink_map_err(|e| {
-                    io::Error::new(io::ErrorKind::Other, format!("error when receiving: {}", e))
-                })
+                .sink_map_err(|e| format_err!("error when receiving: {}", e))
                 .send_all(data)
                 .map(|_| ())
         })
@@ -70,11 +68,11 @@ fn amqp_sender(
     channel: &Channel<TcpStream>,
     ack_channel: &Channel<TcpStream>,
     receive_response: Receiver<AMQPResponse>,
-) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
+) -> impl Future<Item = (), Error = failure::Error> + Send + 'static {
     let channel = channel.clone();
     let ack_channel = ack_channel.clone();
     receive_response
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "")) // Dummy
+        .map_err(|_| format_err!("")) // Dummy
         .for_each(move |mut response| {
             info!(
                 "sending response {} to queue {}",
@@ -96,6 +94,7 @@ fn amqp_sender(
                     BasicProperties::default(),
                 )
                 .and_then(move |_| ack_channel.basic_ack(delivery_tag, false))
+                .map_err(|e| e.into())
         })
 }
 
@@ -103,18 +102,23 @@ pub fn amqp_process(
     config: &Arc<Configuration>,
     send_request: Sender<AMQPRequest>,
     receive_response: Receiver<AMQPResponse>,
-) -> impl Future<Item = (), Error = io::Error> + Send + 'static {
+) -> impl Future<Item = (), Error = failure::Error> + Send + 'static {
     let client = amqputils::create_client(&config.amqp);
     let config = config.clone();
     client.and_then(move |client| {
-        client.create_channel().and_then(move |channel| {
-            let ack_channel = channel.clone();
-            let receiver = amqputils::declare_exchange_and_queue(&channel, &config.amqp)
-                .and_then(move |queue| amqp_receiver(&channel, &config, queue, send_request));
-            let sender = client
-                .create_channel()
-                .and_then(move |channel| amqp_sender(&channel, &ack_channel, receive_response));
-            receiver.join(sender).map(|_| ())
-        })
+        client
+            .create_channel()
+            .map_err(|e| e.into())
+            .and_then(move |channel| {
+                let ack_channel = channel.clone();
+                let receiver = amqputils::declare_exchange_and_queue(&channel, &config.amqp)
+                    .map_err(|e| e.into())
+                    .and_then(move |queue| amqp_receiver(&channel, &config, queue, send_request));
+                let sender = client
+                    .create_channel()
+                    .map_err(|e| e.into())
+                    .and_then(move |channel| amqp_sender(&channel, &ack_channel, receive_response));
+                receiver.join(sender).map(|_| ())
+            })
     })
 }
