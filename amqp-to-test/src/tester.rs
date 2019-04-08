@@ -63,7 +63,8 @@ fn execute(
     let extra_args = config.extra_args.clone().unwrap_or_else(|| vec![]);
     Box::new(cpu_pool.spawn_fn(move || {
         info!("starting docker command for {}", request.job_name);
-        let output = Command::new("docker")
+        let mut command = Command::new("docker");
+        let command = command
             .arg("run")
             .arg("--rm")
             .arg("-v")
@@ -78,7 +79,9 @@ fn execute(
             .arg(&request.zip_url)
             .arg(&request.dir)
             .arg(&program)
-            .arg(&test_file)
+            .arg(&test_file);
+        trace!("docker command for {}: {:?}", request.job_name, command);
+        let output = command
             .stdin(Stdio::null())
             .output()
             .context("cannot run command")?;
