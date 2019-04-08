@@ -22,7 +22,7 @@ fn main() {
     env_logger::init();
     info!("starting");
     if let Err(e) = run() {
-        error!("existing because of {}", e);
+        error!("exiting because of {}", e);
         process::exit(1);
     }
 }
