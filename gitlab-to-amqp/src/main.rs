@@ -45,7 +45,10 @@ fn run() -> Result<(), Error> {
     let (send_request, receive_request) = mpsc::channel(16);
     let (send_response, receive_response) = mpsc::channel(16);
     let packager = gitlab::packager(&config, &cpu_pool, receive_hook, send_request);
-    let amqp_process = amqp::amqp_process(&config, receive_request, send_response).map_err(|_| ());
+    let amqp_process = amqp::amqp_process(&config, receive_request, send_response).map_err(|e| {
+        error!("AMQP error: {}", e);
+        ()
+    });
     let cloned_config = config.clone();
     // Using a CPU pool to post responses is a bit dirty, but since we cannot hop threads
     // with the posting it is simpler at this time, so let's be synchronous.
@@ -66,7 +69,10 @@ fn run() -> Result<(), Error> {
         }
         future::ok(())
     });
-    let web_server = web::web_server(&cpu_pool, &config, send_hook).map_err(|_| ());
+    let web_server = web::web_server(&cpu_pool, &config, send_hook).map_err(|e| {
+        error!("web server error: {}", e);
+        ()
+    });
     tokio::run(
         packager
             .join4(amqp_process, response_poster, web_server)
