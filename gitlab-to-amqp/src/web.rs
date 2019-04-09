@@ -20,7 +20,7 @@ pub fn web_server(
     cpu_pool: &CpuPool,
     config: &Arc<Configuration>,
     send_hook: Sender<GitlabHook>,
-) -> Box<Future<Item = (), Error = io::Error> + Send + 'static> {
+) -> Box<dyn Future<Item = (), Error = io::Error> + Send + 'static> {
     let cpu_pool = cpu_pool.clone();
     let config = config.clone();
     let addr = SocketAddr::new(config.server.ip, config.server.port);
@@ -61,7 +61,8 @@ impl Service for GitlabService {
     type ReqBody = Body;
     type ResBody = Body;
     type Error = io::Error;
-    type Future = Box<Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send + 'static>;
+    type Future =
+        Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send + 'static>;
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let (head, body) = req.into_parts();
@@ -142,7 +143,7 @@ impl Service for GitlabService {
     }
 }
 
-fn not_found() -> Box<Future<Item = Response<Body>, Error = io::Error> + Send + 'static> {
+fn not_found() -> Box<dyn Future<Item = Response<Body>, Error = io::Error> + Send + 'static> {
     Box::new(future::ok(
         Response::builder()
             .status(StatusCode::NOT_FOUND)

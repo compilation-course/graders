@@ -34,7 +34,7 @@ fn execute(
     config: &TesterConfiguration,
     request: &AMQPRequest,
     cpu_pool: &CpuPool,
-) -> Box<Future<Item = String, Error = Error> + Send + 'static> {
+) -> Box<dyn Future<Item = String, Error = Error> + Send + 'static> {
     let test_file = match config.test_files.get(&request.lab) {
         Some(file) => config.dir_in_docker.join(&file),
         None => {
@@ -145,7 +145,7 @@ pub fn start_executor(
     config: &Arc<config::Configuration>,
     receive_request: Receiver<AMQPRequest>,
     send_response: Sender<AMQPResponse>,
-) -> Box<Future<Item = (), Error = ()> + Send + 'static> {
+) -> Box<dyn Future<Item = (), Error = ()> + Send + 'static> {
     let cpu_pool = CpuPool::new(config.tester.parallelism);
     let config = config.clone();
     Box::new(receive_request.for_each(move |request| {
