@@ -30,7 +30,7 @@ struct XQueue {
 }
 
 impl XQueue {
-    fn login(&mut self) -> Box<Future<Item = bool, Error = Error>> {
+    fn login(&mut self) -> Box<dyn Future<Item = bool, Error = Error>> {
         let client = Client::new();
         let url = format!("{}/xqueue/login", self.base_url)
             .parse()

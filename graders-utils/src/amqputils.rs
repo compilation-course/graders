@@ -3,6 +3,7 @@ use lapin::channel::{Channel, ExchangeDeclareOptions, QueueBindOptions, QueueDec
 use lapin::client::{Client, ConnectionOptions};
 use lapin::queue::Queue;
 use lapin::types::FieldTable;
+use lapin_futures as lapin;
 use std::net;
 use tokio;
 use tokio::net::TcpStream;

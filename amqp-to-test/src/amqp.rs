@@ -7,6 +7,7 @@ use lapin::channel::{
 };
 use lapin::queue::Queue;
 use lapin::types::FieldTable;
+use lapin_futures as lapin;
 use serde_json;
 use std::mem;
 use std::sync::Arc;

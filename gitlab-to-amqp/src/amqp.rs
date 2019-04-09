@@ -7,6 +7,7 @@ use lapin::channel::{
     BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
+use lapin_futures as lapin;
 use serde_json;
 use std::sync::Arc;
 use tokio::net::TcpStream;

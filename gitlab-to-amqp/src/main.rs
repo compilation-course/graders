@@ -1,4 +1,3 @@
-extern crate lapin_futures as lapin;
 #[macro_use]
 extern crate log;
 #[macro_use]
