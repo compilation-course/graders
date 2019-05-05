@@ -127,11 +127,15 @@ fn package(
     info!("packaging {}", hook.desc());
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
-    let _repo = clone(&config.gitlab.token, hook, &root)?;
+    let _repo = clone(&config.gitlab.token, hook, &root).map_err(|e| {
+        error!("error when cloning: {}", e);
+        e
+    })?;
     let zip_dir = &Path::new(&config.package.zip_dir);
     let mut to_test = Vec::new();
     for lab in config.labs.iter().filter(|l| l.is_enabled()) {
         let path = root.join(&lab.base).join(&lab.dir);
+        trace!("looking for witness {:?} in path {:?}", lab.witness, path);
         if path.is_dir()
             && lab
                 .witness
