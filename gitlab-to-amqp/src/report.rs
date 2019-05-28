@@ -38,7 +38,7 @@ fn signal_to_explanation(signal: u32) -> &'static str {
         4 => "illegal instruction",
         6 => "abort, possibly because of a failed assertion",
         8 => "arithmetic exception",
-        9 => "program killed",
+        9 => "program killed, possibly because of an infinite loop or memory exhaustion",
         10 => "bus error",
         11 => "segmentation fault",
         _ => "crash",
