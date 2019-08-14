@@ -9,6 +9,7 @@ use lapin::queue::Queue;
 use lapin::types::FieldTable;
 use lapin_futures as lapin;
 use serde_json;
+use std::convert::Into;
 use std::mem;
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -37,7 +38,7 @@ fn amqp_receiver(
                 FieldTable::new(),
             )
         })
-        .map_err(|e| e.into())
+        .map_err(Into::into)
         .and_then(move |stream| {
             let data = stream
                 .filter_map(|msg| match String::from_utf8(msg.data) {
@@ -96,7 +97,7 @@ fn amqp_sender(
                     BasicProperties::default(),
                 )
                 .and_then(move |_| ack_channel.basic_ack(delivery_tag, false))
-                .map_err(|e| e.into())
+                .map_err(Into::into)
         })
 }
 
@@ -110,15 +111,15 @@ pub fn amqp_process(
     client.and_then(move |client| {
         client
             .create_channel()
-            .map_err(|e| e.into())
+            .map_err(Into::into)
             .and_then(move |channel| {
                 let ack_channel = channel.clone();
                 let receiver = amqputils::declare_exchange_and_queue(&channel, &config.amqp)
-                    .map_err(|e| e.into())
+                    .map_err(Into::into)
                     .and_then(move |queue| amqp_receiver(&channel, &config, queue, send_request));
                 let sender = client
                     .create_channel()
-                    .map_err(|e| e.into())
+                    .map_err(Into::into)
                     .and_then(move |channel| amqp_sender(&channel, &ack_channel, receive_response));
                 receiver.join(sender).map(|_| ())
             })

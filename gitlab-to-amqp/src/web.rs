@@ -92,7 +92,6 @@ impl Service for GitlabService {
                                     send_request.clone().send(hook.clone()).map(|_| ()).map_err(
                                         move |e| {
                                             error!("unable to send hook {:?} around: {}", hook, e);
-                                            ()
                                         },
                                     ),
                                 );

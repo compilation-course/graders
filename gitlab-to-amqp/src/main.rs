@@ -46,7 +46,6 @@ fn run() -> Result<(), Error> {
     let packager = gitlab::packager(&config, &cpu_pool, receive_hook, send_request);
     let amqp_process = amqp::amqp_process(&config, receive_request, send_response).map_err(|e| {
         error!("AMQP error: {}", e);
-        ()
     });
     let cloned_config = config.clone();
     // Using a CPU pool to post responses is a bit dirty, but since we cannot hop threads
@@ -70,7 +69,6 @@ fn run() -> Result<(), Error> {
     });
     let web_server = web::web_server(&cpu_pool, &config, send_hook).map_err(|e| {
         error!("web server error: {}", e);
-        ()
     });
     tokio::run(
         packager

@@ -9,6 +9,7 @@ use lapin::channel::{
 use lapin::types::FieldTable;
 use lapin_futures as lapin;
 use serde_json;
+use std::convert::Into;
 use std::sync::Arc;
 use tokio::net::TcpStream;
 
@@ -97,7 +98,6 @@ fn amqp_receiver(
                         "terminating listening onto the {} queue",
                         gitlab::RESULT_QUEUE
                     );
-                    ()
                 })
         })
 }
@@ -119,8 +119,8 @@ pub fn amqp_process(
             .and_then(move |(channel, config)| amqp_publisher(&channel, &config, receive_request));
         let receiver = client
             .create_channel()
-            .map_err(|e| e.into())
+            .map_err(Into::into)
             .and_then(|channel| amqp_receiver(&channel, send_response));
-        publisher.map_err(|e| e.into()).join(receiver).map(|_| ())
+        publisher.map_err(Into::into).join(receiver).map(|_| ())
     })
 }

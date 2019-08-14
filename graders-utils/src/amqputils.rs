@@ -4,6 +4,7 @@ use lapin::client::{Client, ConnectionOptions};
 use lapin::queue::Queue;
 use lapin::types::FieldTable;
 use lapin_futures as lapin;
+use std::convert::Into;
 use std::net;
 use tokio;
 use tokio::net::TcpStream;
@@ -51,14 +52,13 @@ pub fn create_client(
     config: &AMQPConfiguration,
 ) -> impl Future<Item = Client<TcpStream>, Error = failure::Error> + Send + 'static {
     let dest = format!("{}:{}", config.host, config.port);
-    future::result(create_tcp_stream(&dest).map_err::<failure::Error, _>(|e| e.into()))
+    future::result(create_tcp_stream(&dest).map_err::<failure::Error, _>(Into::into))
         .and_then(|stream| {
-            Client::connect(stream, ConnectionOptions::default()).map_err(|e| e.into())
+            Client::connect(stream, ConnectionOptions::default()).map_err(Into::into)
         })
         .map(|(client, heartbeat)| {
             tokio::spawn(heartbeat.map_err(|e| {
                 warn!("cannot send AMQP heartbeat: {}", e);
-                ()
             }));
             client
         })

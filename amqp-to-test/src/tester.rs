@@ -156,7 +156,6 @@ pub fn start_executor(
                 .and_then(move |response| {
                     send_response.send(response).map_err(|e| {
                         error!("unable to send AMQPResponse to queue: {}", e);
-                        ()
                     })
                 })
                 .map(|_| ()),
