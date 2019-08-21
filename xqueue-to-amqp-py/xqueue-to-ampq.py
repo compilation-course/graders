@@ -208,18 +208,25 @@ async def on_grader_message(message: aiormq.types.DeliveredMessage, config):
 
     await message.channel.basic_ack(message.delivery.delivery_tag)
 
-
 async def poll_xqueue(config, amqp_channel):
-    """ poll xqueue and process waiting submissions """
+    """
+    poll xqueue and process waiting submissions,
+    returns true if queue is growing
+    """
     async with aiohttp.ClientSession() as session:
         await xqueue_login(session, config)
         queue_len = await xqueue_getqueuelen(session, config)
         logging.info("Polling xqueue ({} jobs submitted)".format(queue_len))
-        if queue_len > 0:
+        # Process all submissions in queue
+        must_grade = []
+        for _ in range(queue_len):
+            # to avoid throttling issues, we serialize requests to EDX servers
             submission = await xqueue_getsubmission(session, config)
-            await grade_submission(config, amqp_channel, submission)
-            queue_len -= 1
-        return queue_len
+            must_grade.append(grade_submission(config, amqp_channel, submission))
+
+        # but submissions to amqp can be done asynchronously
+        await asyncio.gather(*must_grade)
+        return queue_len > 0
 
 
 async def main(config):
@@ -244,9 +251,9 @@ async def main(config):
                                         durable='false')
 
     while (1):
-        queue_len = await poll_xqueue(config, amqp_channel)
+        queue_growing = await poll_xqueue(config, amqp_channel)
         # throttle requests as per EDX documentation when queue is not growing
-        if queue_len == 0:
+        if not queue_growing:
             await asyncio.sleep(config['xqueue']['poll_delay'])
 
 
