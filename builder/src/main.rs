@@ -17,10 +17,6 @@ use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 #[derive(Fail, Debug)]
-#[fail(display = "unknown repository source {}", _0)]
-struct UnknownRepositorySource(String);
-
-#[derive(Fail, Debug)]
 #[fail(display = "zip extract error")]
 struct ZipExtractError(#[cause] io::Error);
 
@@ -74,19 +70,13 @@ fn main() {
         .to_str()
         .expect("non-utf8 character in top-level directory");
     if !Path::new(&opt.src).is_dir() {
-        if opt.src.ends_with(".zip") {
-            info!("Unzipping {:?}", opt.src);
-            match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir) {
-                Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
-                Err(e) => {
-                    outputs::write_error(&opt, &ZipExtractError(e).into());
-                    return;
-                }
+        info!("Unzipping {:?}", opt.src);
+        match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir) {
+            Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
+            Err(e) => {
+                outputs::write_error(&opt, &ZipExtractError(e).into());
+                return;
             }
-        } else {
-            error!("unknown repository source {}", opt.src);
-            outputs::write_error(&opt, &UnknownRepositorySource(opt.src.clone()).into());
-            return;
         }
     }
     let dtiger = Path::new(&opt.src).join("src/driver/dtiger");
