@@ -1,0 +1,12 @@
+<problem>
+  <coderesponse queuename="imtx-compilers">
+    <label>Please submit your assignment as a zip file named
+    <b>submission.zip<\b>.</label>
+    <filesubmission required_files="submission.zip" points="31" />
+    <codeparam>
+    <grader_payload>
+        {"lab": "lab1"}
+    </grader_payload>
+    </codeparam>
+  </coderesponse>
+</problem>
