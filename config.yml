@@ -1,3 +1,4 @@
+# This section is for gitlab-to-amqp only
 server:
   ip: "0.0.0.0"
   port: 8000
@@ -10,6 +11,15 @@ gitlab:
 package:
   threads: 4
   zip_dir: "/tmp/gitlab-to-amqp"
+
+# This section is for xqueue-to-amqp only
+xqueue:
+  base_url: https://xqueue.edx.org
+  username: imtx-compilers
+  password: abcdefghijklmnop
+  amqp_queue: xqueue_grader
+  poll_delay: 2
+  zip_name: submission.zip
 
 # By default, labs are enabled. When no witness is set
 # for a lab, the mere presence of the directory is enough
