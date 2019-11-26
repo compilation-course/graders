@@ -6,7 +6,6 @@ use std::io::Read;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use url::Url;
-use url_serde;
 
 #[derive(Deserialize)]
 pub struct Configuration {
@@ -21,14 +20,12 @@ pub struct Configuration {
 pub struct ServerConfiguration {
     pub ip: IpAddr,
     pub port: u16,
-    #[serde(with = "url_serde")]
     pub base_url: Url,
 }
 
 #[derive(Clone, Deserialize)]
 pub struct GitlabConfiguration {
     pub token: String,
-    #[serde(with = "url_serde")]
     pub base_url: Url,
 }
 

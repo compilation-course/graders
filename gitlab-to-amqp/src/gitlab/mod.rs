@@ -18,7 +18,6 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::runtime::current_thread;
 use url::Url;
-use url_serde;
 use uuid::Uuid;
 
 use crate::config::Configuration;
@@ -40,9 +39,7 @@ pub struct GitlabHook {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct GitlabRepository {
     name: String,
-    #[serde(with = "url_serde")]
     homepage: Url,
-    #[serde(with = "url_serde")]
     git_http_url: Url,
 }
 

@@ -5,24 +5,22 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-env_logger = "0.6.1"
+env_logger = "0.7.1"
 futures = "0.1.26"
 futures-cpupool = "0.1.8"
-git2 = "0.8.0"
+git2 = "0.11.0"
 hyper = "0.12.25"
 hyper-tls = "0.3.2"
 lapin-futures = "0.18.0"
 log = "0.4.6"
 mktemp = "0.4.0"
-serde = "1.0.90"
-serde_derive = "1.0.90"
-serde_json = "1.0.39"
-serde_yaml = "0.8.8"
+serde = "1.0.103"
+serde_derive = "1.0.103"
+serde_json = "1.0.42"
+serde_yaml = "0.8.11"
 tokio = "0.1.18"
-url = "1.7.2"
-url_serde = "0.2.0"
 zip = "0.5.2"
-failure = "0.1.5"
+failure = "0.1.6"
 
 [dependencies.clap]
 features = ["yaml"]
@@ -33,4 +31,8 @@ path = "../graders-utils"
 
 [dependencies.uuid]
 features = ["v4"]
-version = "0.7.4"
+version = "0.8.1"
+
+[dependencies.url]
+features = ["serde"]
+version = "2.1.0"
