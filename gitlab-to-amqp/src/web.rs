@@ -88,13 +88,11 @@ impl Service for GitlabService {
                                 );
                             } else if !hook.is_delete() {
                                 trace!("received json and will pass it around: {:?}", hook);
-                                tokio::spawn(
-                                    send_request.clone().send(hook.clone()).map(|_| ()).map_err(
-                                        move |e| {
-                                            error!("unable to send hook {:?} around: {}", hook, e);
-                                        },
-                                    ),
-                                );
+                                tokio::spawn(send_request.send(hook.clone()).map(|_| ()).map_err(
+                                    move |e| {
+                                        error!("unable to send hook {:?} around: {}", hook, e);
+                                    },
+                                ));
                             } else {
                                 debug!("branch deletion event for {}", hook.desc());
                             }
