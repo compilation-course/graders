@@ -1,85 +1,51 @@
-use futures::sync::mpsc::Sender;
-use futures::*;
-use futures_cpupool::CpuPool;
+use failure::{format_err, ResultExt};
+use futures::channel::mpsc::Sender;
+use futures::SinkExt;
 use graders_utils::fileutils;
 use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
-use hyper::service::Service;
+use hyper::server::conn::AddrStream;
+use hyper::service;
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
 use serde_json;
-use std::fs::File;
-use std::io::{self, Read};
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 use tokio;
+use tokio::fs::File;
+use tokio::io::AsyncReadExt;
 
 use crate::config::Configuration;
 use crate::gitlab::GitlabHook;
 
-pub fn web_server(
-    cpu_pool: &CpuPool,
+pub async fn web_server(
     config: &Arc<Configuration>,
     send_hook: Sender<GitlabHook>,
-) -> Box<dyn Future<Item = (), Error = io::Error> + Send + 'static> {
-    let cpu_pool = cpu_pool.clone();
+) -> Result<(), failure::Error> {
     let config = config.clone();
     let addr = SocketAddr::new(config.server.ip, config.server.port);
     info!(
         "will listen on {:?} with base URL of {}",
         addr, config.server.base_url
     );
-    let gitlab_service = GitlabService::new(&cpu_pool, &config, send_hook);
-    Box::new(
-        Server::bind(&addr)
-            .serve(move || Ok(gitlab_service.clone()).map_err(|e: io::Error| e))
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e)),
-    )
-}
-
-#[derive(Clone)]
-struct GitlabService {
-    cpu_pool: CpuPool,
-    config: Arc<Configuration>,
-    send_request: Sender<GitlabHook>,
-}
-
-impl GitlabService {
-    fn new(
-        cpu_pool: &CpuPool,
-        config: &Arc<Configuration>,
-        send_request: Sender<GitlabHook>,
-    ) -> GitlabService {
-        GitlabService {
-            cpu_pool: cpu_pool.clone(),
-            config: config.clone(),
-            send_request,
-        }
-    }
-}
-
-impl Service for GitlabService {
-    type ReqBody = Body;
-    type ResBody = Body;
-    type Error = io::Error;
-    type Future =
-        Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error> + Send + 'static>;
-
-    fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
-        let (head, body) = req.into_parts();
-        trace!("got {} {}", head.method, head.uri.path());
-        match (head.method, head.uri.path()) {
-            (Method::POST, "/push") => {
-                let send_request = self.send_request.clone();
-                Box::new(
-                    body.concat2()
-                        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
-                        .and_then(|b| {
-                            serde_json::from_slice::<GitlabHook>(b.as_ref()).map_err(|e| {
-                                error!("error when decoding body: {}", e);
-                                io::Error::new(io::ErrorKind::Other, e)
-                            })
-                        })
-                        .map(move |hook| {
+    let make_svc = service::make_service_fn(|socket: &AddrStream| {
+        debug!("connection from {:?}", socket.remote_addr());
+        let send_hook = send_hook.clone();
+        let config = config.clone();
+        async move {
+            Ok::<_, failure::Error>(service::service_fn(move |req: Request<Body>| {
+                let send_hook = send_hook.clone();
+                let config = config.clone();
+                async move {
+                    let (head, body) = req.into_parts();
+                    trace!("got {} {}", head.method, head.uri.path());
+                    match (head.method, head.uri.path()) {
+                        (Method::POST, "/push") => {
+                            let body = hyper::body::to_bytes(body).await?;
+                            let hook =
+                                serde_json::from_slice::<GitlabHook>(&body).with_context(|e| {
+                                    error!("error when decoding body: {}", e);
+                                    format_err!("error when decoding body: {}", e)
+                                })?;
                             if hook.object_kind != "push" {
                                 trace!(
                                     "received unknown object kind for {}: {}",
@@ -88,63 +54,65 @@ impl Service for GitlabService {
                                 );
                             } else if !hook.is_delete() {
                                 trace!("received json and will pass it around: {:?}", hook);
-                                tokio::spawn(send_request.send(hook.clone()).map(|_| ()).map_err(
-                                    move |e| {
+                                let mut send_hook = send_hook.clone();
+                                tokio::spawn(async move {
+                                    if let Err(e) = send_hook.send(hook.clone()).await {
                                         error!("unable to send hook {:?} around: {}", hook, e);
-                                    },
-                                ));
+                                    }
+                                });
                             } else {
                                 debug!("branch deletion event for {}", hook.desc());
                             }
-                            Response::builder()
-                                .status(StatusCode::NO_CONTENT)
-                                .body(Body::empty())
-                                .unwrap()
-                        }),
-                )
-            }
-            (Method::GET, path)
-                if path.starts_with("/zips/") && !fileutils::contains_dotdot(path) =>
-            {
-                let path = Path::new(path);
-                let zip_dir = Path::new(&self.config.package.zip_dir);
-                let zip_file = zip_dir.join(Path::new(path).strip_prefix("/zips/").unwrap());
-                if zip_file.is_file() {
-                    debug!("serving {:?}", path);
-                    Box::new(
-                        self.cpu_pool
-                            .spawn_fn(move || {
+                            Ok::<_, failure::Error>(
+                                Response::builder()
+                                    .status(StatusCode::NO_CONTENT)
+                                    .body(Body::empty())?,
+                            )
+                        }
+                        (Method::GET, path)
+                            if path.starts_with("/zips/") && !fileutils::contains_dotdot(path) =>
+                        {
+                            let path = Path::new(path);
+                            let zip_dir = Path::new(&config.package.zip_dir);
+                            let zip_file =
+                                zip_dir.join(Path::new(path).strip_prefix("/zips/").unwrap());
+                            if zip_file.is_file() {
+                                debug!("serving {:?}", path);
                                 let mut content =
                                     Vec::with_capacity(zip_file.metadata()?.len() as usize);
-                                File::open(&zip_file)?.read_to_end(&mut content)?;
-                                Ok(content)
-                            })
-                            .map(|content| {
-                                Response::builder()
+                                File::open(&zip_file)
+                                    .await?
+                                    .read_to_end(&mut content)
+                                    .await?;
+                                Ok(Response::builder()
                                     .header(
                                         CONTENT_TYPE,
                                         HeaderValue::from_static("application/zip"),
                                     )
                                     .header(CONTENT_LENGTH, content.len())
-                                    .body(Body::from(content))
-                                    .unwrap()
-                            }),
-                    )
-                } else {
-                    warn!("unable to serve {:?}", path);
-                    not_found()
+                                    .body(Body::from(content))?)
+                            } else {
+                                warn!("unable to serve {:?}", path);
+                                Ok(not_found())
+                            }
+                        }
+                        (method, path) => {
+                            info!("unknown incoming request {:?} for {}", method, path);
+                            Ok(not_found())
+                        }
+                    }
                 }
-            }
-            _ => not_found(),
+            }))
         }
-    }
+    });
+    // let make_svc = service::make_service_fn(|_| async move { Ok::<_, Infallible>(svc) });
+    Server::bind(&addr).serve(make_svc).await?;
+    Ok(())
 }
 
-fn not_found() -> Box<dyn Future<Item = Response<Body>, Error = io::Error> + Send + 'static> {
-    Box::new(future::ok(
-        Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::empty())
-            .unwrap(),
-    ))
+fn not_found() -> Response<Body> {
+    Response::builder()
+        .status(StatusCode::NOT_FOUND)
+        .body(Body::empty())
+        .unwrap()
 }

@@ -1,14 +1,13 @@
-use failure::{Error, ResultExt};
-use futures::sync::mpsc::{Receiver, Sender};
-use futures::{future, Future, Sink, Stream};
-use futures_cpupool::CpuPool;
+use failure::{bail, Error, ResultExt};
+use futures::channel::mpsc::{Receiver, Sender};
+use futures::{SinkExt, StreamExt, TryFutureExt};
 use graders_utils::amqputils::{AMQPRequest, AMQPResponse};
 use serde_yaml;
 use std::collections::btree_map::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
-use tokio;
+use tokio::sync::Semaphore;
 
 use crate::config;
 
@@ -28,21 +27,21 @@ pub struct TesterConfiguration {
     pub test_files: BTreeMap<String, PathBuf>,
 }
 
-/// Execute a request using docker in the given CPU pool. Return the
+/// Execute a request using docker on a blocking CPU pool. Return the
 /// YAML output or a descriptive error.
-fn execute(
+async fn execute(
     config: &TesterConfiguration,
     request: &AMQPRequest,
-    cpu_pool: &CpuPool,
-) -> Box<dyn Future<Item = String, Error = Error> + Send + 'static> {
+    cpu_access: Arc<Semaphore>,
+) -> Result<String, Error> {
     let test_file = match config.test_files.get(&request.lab) {
         Some(file) => config.dir_in_docker.join(&file),
         None => {
-            return Box::new(future::err(format_err!(
+            bail!(
                 "unable to find configuration for lab {} for {}",
                 request.lab,
                 request.job_name
-            )))
+            );
         }
     };
     let request = request.clone();
@@ -61,7 +60,8 @@ fn execute(
         .collect::<Vec<_>>();
     let docker_image = config.docker_image.clone();
     let extra_args = config.extra_args.clone().unwrap_or_else(|| vec![]);
-    Box::new(cpu_pool.spawn_fn(move || {
+    let _permit = cpu_access.acquire().await;
+    tokio::task::spawn_blocking(move || {
         info!("starting docker command for {}", request.job_name);
         let mut command = Command::new("docker");
         let command = command
@@ -98,29 +98,29 @@ fn execute(
             );
             Err(ExecutionError(String::from_utf8_lossy(&output.stderr).to_string()).into())
         }
-    }))
+    })
+    .await?
 }
 
 /// Execute a request using docker and build a response containing the
 /// YAML output or response.
-fn execute_request(
+async fn execute_request(
     config: &TesterConfiguration,
     request: AMQPRequest,
-    cpu_pool: &CpuPool,
-) -> impl Future<Item = AMQPResponse, Error = ()> + Send + 'static {
-    execute(config, &request, cpu_pool)
-        .then(|result| match result {
-            Ok(y) => future::ok(y),
-            Err(e) => future::ok(yaml_error(&e)),
-        })
-        .map(|yaml| AMQPResponse {
-            job_name: request.job_name,
-            lab: request.lab,
-            opaque: request.opaque,
-            yaml_result: yaml,
-            result_queue: request.result_queue,
-            delivery_tag: request.delivery_tag.unwrap(),
-        })
+    cpu_access: Arc<Semaphore>,
+) -> AMQPResponse {
+    let yaml = match execute(config, &request, cpu_access).await {
+        Ok(y) => y,
+        Err(e) => yaml_error(&e),
+    };
+    AMQPResponse {
+        job_name: request.job_name,
+        lab: request.lab,
+        opaque: request.opaque,
+        yaml_result: yaml,
+        result_queue: request.result_queue,
+        delivery_tag: request.delivery_tag.unwrap(),
+    }
 }
 
 #[derive(Serialize)]
@@ -141,25 +141,30 @@ fn yaml_error(error: &Error) -> String {
 }
 
 /// Start the executors on the current thread
-pub fn start_executor(
+pub async fn start_executor(
     config: &Arc<config::Configuration>,
     receive_request: Receiver<AMQPRequest>,
     send_response: Sender<AMQPResponse>,
-) -> Box<dyn Future<Item = (), Error = ()> + Send + 'static> {
-    let cpu_pool = CpuPool::new(config.tester.parallelism);
-    let config = config.clone();
-    Box::new(receive_request.for_each(move |request| {
-        debug!("received request {:?}", request);
-        let send_response = send_response.clone();
-        tokio::spawn(
-            execute_request(&config.tester, request, &cpu_pool)
-                .and_then(move |response| {
-                    send_response.send(response).map_err(|e| {
-                        error!("unable to send AMQPResponse to queue: {}", e);
-                    })
-                })
-                .map(|_| ()),
-        );
-        future::ok(())
-    }))
+) {
+    let cpu_access = Arc::new(Semaphore::new(config.tester.parallelism));
+    receive_request
+        .for_each(move |request| {
+            let cpu_access = cpu_access.clone();
+            let send_response = send_response.clone();
+            async move {
+                debug!("received request {:?}", request);
+                let mut send_response = send_response.clone();
+                let config = config.clone();
+                tokio::spawn(async move {
+                    let response = execute_request(&config.tester, request, cpu_access).await;
+                    send_response
+                        .send(response)
+                        .inspect_err(|e| {
+                            error!("unable to send AMQPResponse to queue: {}", e);
+                        })
+                        .await
+                });
+            }
+        })
+        .await;
 }

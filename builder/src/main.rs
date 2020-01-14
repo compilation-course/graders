@@ -12,13 +12,12 @@ mod outputs;
 
 use graders_utils::ziputils::unzip;
 use mktemp::Temp;
-use std::io;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 #[derive(Fail, Debug)]
 #[fail(display = "zip extract error")]
-struct ZipExtractError(#[cause] io::Error);
+struct ZipExtractError(#[cause] failure::Error);
 
 /// Compile the compiler from the given directory, set env
 /// DTIGER environment variable and run the tests using the
@@ -61,7 +60,8 @@ pub struct Opt {
     test_file: PathBuf,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     env_logger::init();
     let mut opt = Opt::from_args();
     let tmp = Temp::new_dir().unwrap();
@@ -71,7 +71,7 @@ fn main() {
         .expect("non-utf8 character in top-level directory");
     if !Path::new(&opt.src).is_dir() {
         info!("Unzipping {:?}", opt.src);
-        match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir) {
+        match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir).await {
             Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
             Err(e) => {
                 outputs::write_error(&opt, &ZipExtractError(e).into());

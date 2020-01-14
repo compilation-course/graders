@@ -1,18 +1,28 @@
+// TODO This should use asynchronous file operations, as well as run zip/unzip
+// operations onto a worker thread.
+use failure::{bail, ensure, ResultExt};
 use reqwest::{self, StatusCode};
 use std::fs::{self, File};
-use std::io::{self, Error, ErrorKind, Result};
+use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+use tokio::io::AsyncWriteExt;
 use zip;
 use zip::write::{FileOptions, ZipWriter};
 
 /// Unzip `zip_file` in `dir`, ensure that all paths start with the specified
 /// `prefix` directory and a slash and return the path to this directory.
 /// `zip_file` may be an URL starting with `http://` or `https://`.
-pub fn unzip(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf> {
+pub async fn unzip(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
     if zip_file.starts_with("http://") || zip_file.starts_with("https://") {
-        return unzip_url(dir, zip_file, prefix);
+        let downloaded_file = download_url(dir, zip_file, prefix).await?;
+        unzip_file(dir, downloaded_file.to_str().unwrap(), prefix)
+    } else {
+        unzip_file(dir, zip_file, prefix)
     }
+}
+
+fn unzip_file(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
     let with_slash = format!("{}/", prefix);
     let reader = File::open(zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
@@ -20,15 +30,12 @@ pub fn unzip(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf> {
         let mut file = zip.by_index(i)?;
         let name = file.name().to_owned();
         let name = Path::new(&name);
-        if name.is_absolute() || !name.starts_with(&with_slash) {
-            return Err(Error::new(
-                ErrorKind::Other,
-                format!(
-                    "file name in zip does not start with {}: {:?}",
-                    with_slash, name
-                ),
-            ));
-        }
+        ensure!(
+            !name.is_absolute() && name.starts_with(&with_slash),
+            "file name in zip does not start with {}: {:?}",
+            with_slash,
+            name
+        );
         let target_file = dir.join(name);
         if target_file.to_str().unwrap().ends_with('/') {
             fs::create_dir(&target_file)?;
@@ -45,32 +52,37 @@ pub fn unzip(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf> {
     Ok(dir)
 }
 
-fn unzip_url(dir: &PathBuf, url: &str, prefix: &str) -> Result<PathBuf> {
-    let mut zip = reqwest::get(url)
-        .map_err(|e| Error::new(ErrorKind::Other, format!("cannot retrieve {}: {}", url, e)))?;
+async fn download_url(dir: &PathBuf, url: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
+    let zip = reqwest::get(url)
+        .await
+        .with_context(|e| format!("cannot retrieve {}: {}", url, e))?;
     if zip.status() != StatusCode::OK {
         warn!("could not retrieve {}: {}", url, zip.status());
-        return Err(Error::new(
-            ErrorKind::Other,
-            format!("cannot retrieve {}: {}", url, zip.status()),
-        ));
+        bail!("cannot retrieve {}: {}", url, zip.status());
     }
     let target_file = dir.join(&format!("{}.zip", prefix));
     debug!("retrieving {} as {:?}", url, target_file);
-    let mut target = File::create(&target_file)?;
-    zip.copy_to(&mut target)
-        .map_err(|e| Error::new(ErrorKind::Other, format!("cannot write zip file: {}", e)))?;
-    unzip(dir, target_file.to_str().unwrap(), prefix)
+    let mut target = tokio::fs::File::create(&target_file).await?;
+    // TODO Use bytes_stream() and progressive write to avoid loading the whole file to memory.
+    target
+        .write_all(&zip.bytes().await?[..])
+        .await
+        .with_context(|e| format!("cannot write zip file: {}", e))?;
+    Ok(target_file)
 }
 
 /// Recursively build zip while setting the top level name
-pub fn zip_recursive(dir: &Path, top_level: &Path, zip_file: &Path) -> Result<()> {
+pub fn zip_recursive(dir: &Path, top_level: &Path, zip_file: &Path) -> Result<(), io::Error> {
     let writer = File::create(zip_file)?;
     let mut zip = ZipWriter::new(writer);
     add_to_zip(&mut zip, &dir.to_owned(), &Path::new(top_level).to_owned())
 }
 
-fn add_to_zip(zip_file: &mut ZipWriter<File>, dir: &PathBuf, dir_in_zip: &PathBuf) -> Result<()> {
+fn add_to_zip(
+    zip_file: &mut ZipWriter<File>,
+    dir: &PathBuf,
+    dir_in_zip: &PathBuf,
+) -> Result<(), io::Error> {
     zip_file.add_directory(
         format!("{}/", dir_in_zip.to_string_lossy()),
         FileOptions::default(),

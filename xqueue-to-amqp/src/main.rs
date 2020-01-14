@@ -10,8 +10,6 @@ mod xqueue;
 use failure::Error;
 use std::process;
 
-pub type Future<T> = dyn (::futures::Future<Item = T, Error = Error>);
-
 #[derive(Deserialize)]
 struct Config {
     xqueue_base_url: String,

@@ -1,11 +1,9 @@
-use futures::Future;
+use futures::TryFutureExt;
 use hyper::{self, Body, Client, Request, StatusCode};
 use hyper_tls::HttpsConnector;
 
-pub fn post(
-    request: Request<String>,
-) -> impl Future<Item = StatusCode, Error = hyper::Error> + 'static {
-    let https = HttpsConnector::new(4).unwrap();
+pub async fn post(request: Request<String>) -> Result<StatusCode, hyper::Error> {
+    let https = HttpsConnector::new();
     let client = Client::builder().build::<_, Body>(https);
     trace!(
         "preparing to post request to {} ({})",
@@ -17,12 +15,12 @@ pub fn post(
     let method = request.method().clone();
     client
         .request(request)
-        .map(move |r| {
+        .map_ok(move |r| {
             trace!("request to {} ({}) returned {}", uri, method, r.status());
             r.status()
         })
-        .map_err(|e| {
+        .inspect_err(|e| {
             error!("could not post request: {}", e);
-            e
         })
+        .await
 }

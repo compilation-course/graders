@@ -6,25 +6,26 @@ edition = "2018"
 
 [dependencies]
 env_logger = "0.7.1"
-futures = "0.1.26"
-futures-cpupool = "0.1.8"
 git2 = "0.11.0"
-hyper = "0.12.25"
-hyper-tls = "0.3.2"
-lapin-futures = "0.18.0"
+hyper = "0.13"
+hyper-tls = "0.4"
+lapin-futures = "0.28"
 log = "0.4.6"
 mktemp = "0.4.0"
 serde = "1.0.103"
 serde_derive = "1.0.103"
 serde_json = "1.0.42"
 serde_yaml = "0.8.11"
-tokio = "0.1.18"
 zip = "0.5.2"
 failure = "0.1.6"
 
 [dependencies.clap]
 features = ["yaml"]
 version = "2.33.0"
+
+[dependencies.futures]
+features = ["compat"]
+version = "0.3"
 
 [dependencies.graders-utils]
 path = "../graders-utils"
@@ -36,3 +37,7 @@ version = "0.8.1"
 [dependencies.url]
 features = ["serde"]
 version = "2.1.0"
+
+[dependencies.tokio]
+features = ["macros", "rt-threaded"]
+version = "0.2.9"

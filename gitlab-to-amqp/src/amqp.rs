@@ -1,126 +1,115 @@
-use failure::format_err;
-use futures::future::{self, Future};
-use futures::sync::mpsc::{Receiver, Sender};
-use futures::{Sink, Stream};
+use failure::{format_err, ResultExt};
+use futures::channel::mpsc::{Receiver, Sender};
+use futures::compat::{Future01CompatExt, Stream01CompatExt};
+use futures::{future, try_join, FutureExt, SinkExt, StreamExt, TryFutureExt, TryStreamExt};
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
-use lapin::channel::{
-    BasicConsumeOptions, BasicProperties, BasicPublishOptions, Channel, QueueDeclareOptions,
-};
+use lapin::options::{BasicConsumeOptions, BasicPublishOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
+use lapin::{BasicProperties, Channel};
 use lapin_futures as lapin;
 use serde_json;
-use std::convert::Into;
 use std::sync::Arc;
-use tokio::net::TcpStream;
 
 use crate::config::Configuration;
 use crate::gitlab;
 
-fn amqp_publisher(
-    channel: &Channel<TcpStream>,
+async fn amqp_publisher(
+    channel: Channel,
     config: &Arc<Configuration>,
     receive_request: Receiver<AMQPRequest>,
-) -> impl Future<Item = (), Error = lapin::error::Error> + Send + 'static {
-    let channel = channel.clone();
-    let config = config.clone();
+) -> Result<(), lapin::Error> {
     receive_request
-        .then(move |req| {
-            let req = req.unwrap();
-            info!("publishing AMQP job request {}", req.job_name);
-            channel.basic_publish(
-                &config.amqp.exchange,
-                &config.amqp.routing_key,
-                serde_json::to_string(&req).unwrap().as_bytes().to_vec(),
-                BasicPublishOptions::default(),
-                BasicProperties::default(),
-            )
+        .map(Ok)
+        .try_for_each(|req| {
+            let channel = channel.clone();
+            let config = config.clone();
+            async move {
+                info!("publishing AMQP job request {}", req.job_name);
+                channel
+                    .basic_publish(
+                        &config.amqp.exchange,
+                        &config.amqp.routing_key,
+                        serde_json::to_string(&req).unwrap().as_bytes().to_vec(),
+                        BasicPublishOptions::default(),
+                        BasicProperties::default(),
+                    )
+                    .compat()
+                    .await
+            }
         })
-        .for_each(|_| future::ok(()))
+        .await
 }
 
-fn amqp_receiver(
-    channel: &Channel<TcpStream>,
+async fn amqp_receiver(
+    channel: Channel,
     send_response: Sender<AMQPResponse>,
-) -> impl Future<Item = (), Error = failure::Error> + Send + 'static {
-    let channel = channel.clone();
-    let channel_clone = channel.clone();
-    channel
+) -> Result<(), failure::Error> {
+    let result_queue = channel
         .queue_declare(
             gitlab::RESULT_QUEUE,
             QueueDeclareOptions {
                 durable: true,
                 ..Default::default()
             },
-            FieldTable::new(),
+            FieldTable::default(),
         )
-        .and_then(move |result_queue| {
-            channel.basic_consume(
-                &result_queue,
-                "gitlab-to-amqp",
-                BasicConsumeOptions::default(),
-                FieldTable::new(),
+        .compat()
+        .await?;
+    let stream = channel
+        .basic_consume(
+            &result_queue,
+            "gitlab-to-amqp",
+            BasicConsumeOptions::default(),
+            FieldTable::default(),
+        )
+        .compat()
+        .await?;
+    info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
+    let mut data = stream
+        .compat()
+        .err_into()
+        .and_then(|msg| async {
+            channel.basic_ack(msg.delivery_tag, false).compat().await?;
+            let s =
+                String::from_utf8(msg.data).with_context(|e| format!("invalid UTF-8: {}", e))?;
+            let response = serde_json::from_str::<AMQPResponse>(&s)
+                .with_context(|e| format!("cannot decode json: {}", e))?;
+            Ok(response)
+        })
+        .filter(|r| future::ready(r.is_ok()))
+        .boxed();
+    send_response
+        .sink_map_err(|e| {
+            warn!("sink error: {}", e);
+            format_err!("sink error: {}", e)
+        })
+        .send_all(&mut data)
+        .inspect(|_| {
+            warn!(
+                "terminating listening onto the {} queue",
+                gitlab::RESULT_QUEUE
             )
         })
-        .map_err(|e| format_err!("{}", e))
-        .and_then(move |stream| {
-            info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
-            let data = stream
-                .and_then(move |msg| {
-                    channel_clone
-                        .basic_ack(msg.delivery_tag, false)
-                        .map(|_| msg)
-                })
-                .filter_map(|msg| match String::from_utf8(msg.data) {
-                    Ok(s) => Some(s),
-                    Err(e) => {
-                        error!("unable to decode message as valid utf8 string: {}", e);
-                        None
-                    }
-                })
-                .filter_map(|s| match serde_json::from_str::<AMQPResponse>(&s) {
-                    Ok(response) => {
-                        trace!("received response for {}", response.job_name);
-                        Some(response)
-                    }
-                    Err(e) => {
-                        error!("unable to decode message {} as AMQPResponse: {}", s, e);
-                        None
-                    }
-                });
-            send_response
-                .sink_map_err(|e| {
-                    warn!("sink error: {}", e);
-                    format_err!("sink error: {}", e)
-                })
-                .send_all(data)
-                .map(|_| {
-                    warn!(
-                        "terminating listening onto the {} queue",
-                        gitlab::RESULT_QUEUE
-                    );
-                })
-        })
+        .await?;
+    Ok(())
 }
 
-pub fn amqp_process(
+pub async fn amqp_process(
     config: &Arc<Configuration>,
     receive_request: Receiver<AMQPRequest>,
     send_response: Sender<AMQPResponse>,
-) -> impl Future<Item = (), Error = failure::Error> + Send + 'static {
-    let client = amqputils::create_client(&config.amqp);
+) -> Result<(), failure::Error> {
+    let client = amqputils::create_client(&config.amqp).await?;
     let config = config.clone();
-    client.and_then(move |client| {
-        let publisher = client
-            .create_channel()
-            .and_then(move |channel| {
-                amqputils::declare_exchange_and_queue(&channel, &config.amqp)
-                    .map(|_| (channel, config))
-            })
-            .and_then(move |(channel, config)| amqp_publisher(&channel, &config, receive_request));
-        let receiver = client
-            .create_channel()
-            .map_err(Into::into)
-            .and_then(|channel| amqp_receiver(&channel, send_response));
-        publisher.map_err(Into::into).join(receiver).map(|_| ())
-    })
+    let publisher = {
+        let channel = client.create_channel().compat().await?;
+        let _queue = amqputils::declare_exchange_and_queue(&channel, &config.amqp).await?;
+        amqp_publisher(channel, &config, receive_request)
+    };
+    let receiver = {
+        let channel = client.create_channel().compat().await?;
+        amqp_receiver(channel, send_response)
+    };
+    try_join!(publisher.err_into(), receiver)?;
+    Ok(())
 }

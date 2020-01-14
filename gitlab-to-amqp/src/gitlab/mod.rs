@@ -1,11 +1,9 @@
 pub mod api;
 
 use self::api::State;
-use failure::Error;
-use futures::stream::{self, Stream};
-use futures::sync::mpsc::{Receiver, Sender};
-use futures::{Future, Sink};
-use futures_cpupool::CpuPool;
+use failure::{format_err, Error};
+use futures::channel::mpsc::{Receiver, Sender};
+use futures::{future, stream, SinkExt, Stream, StreamExt};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use graders_utils::amqputils::AMQPRequest;
@@ -16,7 +14,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 use std::sync::Arc;
-use tokio::runtime::current_thread;
+use tokio::sync::Semaphore;
 use url::Url;
 use uuid::Uuid;
 
@@ -91,7 +89,13 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error
         .credentials(move |_, _, _| Cred::userpass_plaintext(GITLAB_USERNAME, &token_for_clone));
     let mut fetch_options = FetchOptions::new();
     fetch_options.remote_callbacks(callbacks);
-    trace!("cloning {:?} into {:?}", hook.url(), dir);
+    trace!(
+        "cloning {:?} into {:?} with username {} and token {}",
+        hook.url(),
+        dir,
+        GITLAB_USERNAME,
+        token
+    );
     let repo = RepoBuilder::new()
         .fetch_options(fetch_options)
         .clone(&hook.url().to_string(), dir)?;
@@ -117,10 +121,11 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error
 }
 
 /// Clone and package labs to test. Return a list of (lab, zip base name).
-fn package(
+/// This will use a blocking threadpool for the zip operation itself.
+async fn package(
     config: &Configuration,
     hook: &GitlabHook,
-) -> Result<Vec<(String, String, String)>, Error> {
+) -> Result<Vec<(String, String, String)>, failure::Error> {
     info!("packaging {}", hook.desc());
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
@@ -130,7 +135,7 @@ fn package(
     })?;
     let zip_dir = &Path::new(&config.package.zip_dir);
     let mut to_test = Vec::new();
-    for lab in config.labs.iter().filter(|l| l.is_enabled()) {
+    for lab in config.labs.iter().filter(|l| l.is_enabled()).cloned() {
         let path = root.join(&lab.base).join(&lab.dir);
         trace!("looking for witness {:?} in path {:?}", lab.witness, path);
         if path.is_dir()
@@ -141,21 +146,27 @@ fn package(
                 .unwrap_or(true)
         {
             trace!("publishing initial {} status for {}", lab.name, hook.desc());
-            match current_thread::block_on_all(poster::post(api::post_status(
+            match poster::post(api::post_status(
                 &config.gitlab,
                 hook,
                 &State::Running,
                 hook.branch_name(),
                 &lab.name,
                 Some("packaging and testing"),
-            ))) {
+            ))
+            .await
+            {
                 Ok(_) => (),
                 Err(e) => warn!("unable to post initial status: {}", e),
             };
             trace!("packaging lab {} from {:?}", lab.name, path);
             let zip_basename = format!("{}.zip", Uuid::new_v4());
             let zip_file = zip_dir.join(&zip_basename);
-            match zip_recursive(&path, &lab.dir, &zip_file) {
+            let lab_dir = lab.dir.clone();
+            let zipped =
+                tokio::task::spawn_blocking(move || zip_recursive(&path, &lab_dir, &zip_file))
+                    .await?;
+            match zipped {
                 Ok(_) => to_test.push((
                     lab.name.clone(),
                     lab.dir.to_string_lossy().to_string(),
@@ -163,14 +174,16 @@ fn package(
                 )),
                 Err(e) => {
                     error!("cannot package {:?} (lab {}): {}", hook.url(), lab.name, e);
-                    match current_thread::block_on_all(poster::post(api::post_status(
+                    match poster::post(api::post_status(
                         &config.gitlab,
                         hook,
                         &State::Failed,
                         hook.branch_name(),
                         &lab.name,
                         Some("unable to package compiler"),
-                    ))) {
+                    ))
+                    .await
+                    {
                         Ok(_) => (),
                         Err(e) => warn!("unable to post packaging error status: {}", e),
                     }
@@ -186,10 +199,10 @@ fn labs_result_to_stream(
     base_url: &Url,
     hook: &GitlabHook,
     labs: Vec<(String, String, String)>,
-) -> impl Stream<Item = AMQPRequest, Error = ()> + Send + 'static {
+) -> impl Stream<Item = AMQPRequest> {
     let hook = hook.clone();
     let base_url = base_url.clone();
-    stream::iter_ok(labs.into_iter().map(move |(lab, dir, zip)| {
+    stream::iter(labs.into_iter().map(move |(lab, dir, zip)| {
         AMQPRequest {
             job_name: format!(
                 "[gitlab:{}:{}:{}:{}:{}]",
@@ -214,29 +227,30 @@ fn labs_result_to_stream(
     }))
 }
 
-pub fn packager(
+pub async fn packager(
     config: &Arc<Configuration>,
-    cpu_pool: &CpuPool,
+    cpu_access: &Semaphore,
     receive_hook: Receiver<GitlabHook>,
     send_request: Sender<AMQPRequest>,
-) -> impl Future<Item = (), Error = ()> + Send + 'static {
-    let cpu_pool = cpu_pool.clone();
-    let config = config.clone();
+) -> Result<(), failure::Error> {
+    let labs = receive_hook
+        .then(move |hook: GitlabHook| {
+            let config = config.clone();
+            async move {
+                let clone_hook = hook.clone();
+                let base_url = config.server.base_url.clone();
+                let _permit = cpu_access.acquire().await;
+                let labs = package(&config, &clone_hook).await?;
+                Ok::<_, failure::Error>(labs_result_to_stream(&base_url, &hook, labs))
+            }
+        })
+        .filter_map(|s| future::ready(s.ok()))
+        .flatten()
+        .boxed();
     send_request
-        .sink_map_err(|_| ())
-        .send_all(
-            receive_hook
-                .and_then(move |hook: GitlabHook| {
-                    let clone_hook = hook.clone();
-                    let base_url = config.server.base_url.clone();
-                    let config = config.clone();
-                    cpu_pool
-                        .spawn_fn(move || package(&config, &clone_hook).map_err(|_| ()))
-                        .map(move |labs| labs_result_to_stream(&base_url, &hook, labs))
-                })
-                .flatten(),
-        )
-        .map(|_| ())
+        .sink_map_err(|e| format_err!("sink error: {}", e))
+        .send_all(&mut labs.map(Ok))
+        .await
 }
 
 pub fn remove_zip_file(config: &Configuration, zip: &str) -> io::Result<()> {
