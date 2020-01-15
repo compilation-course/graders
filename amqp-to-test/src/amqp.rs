@@ -23,16 +23,14 @@ async fn amqp_receiver(
     channel
         .basic_qos(prefetch_count, BasicQosOptions { global: false })
         .await?;
-    let stream = Box::new(
-        channel
-            .basic_consume(
-                &queue,
-                "amqp-to-test",
-                BasicConsumeOptions::default(),
-                FieldTable::default(),
-            )
-            .await?,
-    );
+    let stream = channel
+        .basic_consume(
+            &queue,
+            "amqp-to-test",
+            BasicConsumeOptions::default(),
+            FieldTable::default(),
+        )
+        .await?;
     let mut data = stream
         .map(|msg| {
             let msg = msg.with_context(|e| format!("incoming message error: {}", e))?;

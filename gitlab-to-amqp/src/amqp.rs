@@ -62,7 +62,7 @@ async fn amqp_receiver(
         )
         .await?;
     info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
-    let mut data = stream
+    let data = stream
         .err_into()
         .and_then(|msg| async {
             channel
@@ -74,8 +74,8 @@ async fn amqp_receiver(
                 .with_context(|e| format!("cannot decode json: {}", e))?;
             Ok(response)
         })
-        .filter(|r| future::ready(r.is_ok()))
-        .boxed();
+        .filter(|r| future::ready(r.is_ok()));
+    pin_utils::pin_mut!(data);
     send_response
         .sink_map_err(|e| {
             warn!("sink error: {}", e);

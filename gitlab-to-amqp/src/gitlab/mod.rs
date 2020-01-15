@@ -245,8 +245,8 @@ pub async fn packager(
             }
         })
         .filter_map(|s| future::ready(s.ok()))
-        .flatten()
-        .boxed();
+        .flatten();
+    pin_utils::pin_mut!(labs);
     send_request
         .sink_map_err(|e| format_err!("sink error: {}", e))
         .send_all(&mut labs.map(Ok))
