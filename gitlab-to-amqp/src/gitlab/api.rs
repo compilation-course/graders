@@ -32,11 +32,9 @@ where
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum State {
-    Pending,
     Running,
     Success,
     Failed,
-    Canceled,
 }
 
 impl fmt::Display for State {
@@ -45,11 +43,9 @@ impl fmt::Display for State {
             f,
             "{}",
             match *self {
-                State::Pending => "pending",
                 State::Running => "running",
                 State::Success => "success",
                 State::Failed => "failed",
-                State::Canceled => "canceled",
             }
         )
     }
