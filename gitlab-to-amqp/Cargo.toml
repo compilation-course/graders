@@ -6,10 +6,11 @@ edition = "2018"
 
 [dependencies]
 env_logger = "0.7.1"
+futures = "0.3"
 git2 = "0.11.0"
 hyper = "0.13"
 hyper-tls = "0.4"
-lapin-futures = "0.28"
+lapin = {version = "0.28", features = ["futures"]}
 log = "0.4.6"
 mktemp = "0.4.0"
 serde = "1.0.103"
@@ -22,10 +23,6 @@ failure = "0.1.6"
 [dependencies.clap]
 features = ["yaml"]
 version = "2.33.0"
-
-[dependencies.futures]
-features = ["compat"]
-version = "0.3"
 
 [dependencies.graders-utils]
 path = "../graders-utils"

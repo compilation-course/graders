@@ -1,14 +1,12 @@
 use failure::ResultExt;
 use futures::channel::mpsc::{Receiver, Sender};
-use futures::compat::{Future01CompatExt, Stream01CompatExt};
 use futures::future;
 use futures::sink::SinkExt;
 use futures::stream::{StreamExt, TryStreamExt};
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
-use lapin::options::{BasicConsumeOptions, BasicPublishOptions, BasicQosOptions};
+use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions};
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, Channel, Queue};
-use lapin_futures as lapin;
 use serde_json;
 use std::mem;
 use std::sync::Arc;
@@ -24,7 +22,6 @@ async fn amqp_receiver(
     let prefetch_count = config.tester.parallelism as u16;
     channel
         .basic_qos(prefetch_count, BasicQosOptions { global: false })
-        .compat()
         .await?;
     let stream = Box::new(
         channel
@@ -34,11 +31,9 @@ async fn amqp_receiver(
                 BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
-            .compat()
             .await?,
     );
     let mut data = stream
-        .compat()
         .map(|msg| {
             let msg = msg.with_context(|e| format!("incoming message error: {}", e))?;
             let s =
@@ -80,16 +75,17 @@ async fn amqp_sender(
                 .basic_publish(
                     "",
                     &queue,
+                    BasicPublishOptions::default(),
                     serde_json::to_string(&response)
                         .unwrap()
                         .as_bytes()
                         .to_vec(),
-                    BasicPublishOptions::default(),
                     BasicProperties::default(),
                 )
-                .compat()
                 .await?;
-            ack_channel.basic_ack(delivery_tag, false).compat().await?;
+            ack_channel
+                .basic_ack(delivery_tag, BasicAckOptions { multiple: false })
+                .await?;
             Ok(()) as Result<(), failure::Error>
         })
         .await?;
@@ -101,11 +97,11 @@ pub async fn amqp_process(
     send_request: Sender<AMQPRequest>,
     receive_response: Receiver<AMQPResponse>,
 ) -> Result<(), failure::Error> {
-    let client = amqputils::create_client(&config.amqp).await?;
-    let receiver_channel = client.create_channel().compat().await?;
+    let conn = amqputils::create_connection(&config.amqp).await?;
+    let receiver_channel = conn.create_channel().await?;
     let queue = amqputils::declare_exchange_and_queue(&receiver_channel, &config.amqp).await?;
     let receiver = amqp_receiver(&receiver_channel, &config, queue, send_request);
-    let sender_channel = client.create_channel().compat().await?;
+    let sender_channel = conn.create_channel().await?;
     let sender = amqp_sender(&sender_channel, &receiver_channel, receive_response);
     futures::try_join!(receiver, sender)?;
     Ok(())

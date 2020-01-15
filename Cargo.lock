@@ -77,7 +77,7 @@ dependencies = [
  "failure_derive 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "graders-utils 0.1.0",
- "lapin-futures 0.28.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lapin 0.28.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -495,7 +495,6 @@ name = "futures-util"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "futures 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-channel 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-core 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures-io 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -553,7 +552,7 @@ dependencies = [
  "graders-utils 0.1.0",
  "hyper 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper-tls 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "lapin-futures 0.28.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lapin 0.28.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "mktemp 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -572,7 +571,7 @@ version = "0.1.0"
 dependencies = [
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "lapin-futures 0.28.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lapin 0.28.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -771,6 +770,7 @@ dependencies = [
  "amq-protocol 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "amq-protocol-codegen 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-channel 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures-core 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "mio 0.6.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",

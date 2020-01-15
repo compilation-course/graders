@@ -1,12 +1,12 @@
 use failure::{format_err, ResultExt};
 use futures::channel::mpsc::{Receiver, Sender};
-use futures::compat::{Future01CompatExt, Stream01CompatExt};
 use futures::{future, try_join, FutureExt, SinkExt, StreamExt, TryFutureExt, TryStreamExt};
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
-use lapin::options::{BasicConsumeOptions, BasicPublishOptions, QueueDeclareOptions};
+use lapin::options::{
+    BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, QueueDeclareOptions,
+};
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, Channel};
-use lapin_futures as lapin;
 use serde_json;
 use std::sync::Arc;
 
@@ -29,11 +29,10 @@ async fn amqp_publisher(
                     .basic_publish(
                         &config.amqp.exchange,
                         &config.amqp.routing_key,
-                        serde_json::to_string(&req).unwrap().as_bytes().to_vec(),
                         BasicPublishOptions::default(),
+                        serde_json::to_string(&req).unwrap().as_bytes().to_vec(),
                         BasicProperties::default(),
                     )
-                    .compat()
                     .await
             }
         })
@@ -53,7 +52,6 @@ async fn amqp_receiver(
             },
             FieldTable::default(),
         )
-        .compat()
         .await?;
     let stream = channel
         .basic_consume(
@@ -62,14 +60,14 @@ async fn amqp_receiver(
             BasicConsumeOptions::default(),
             FieldTable::default(),
         )
-        .compat()
         .await?;
     info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
     let mut data = stream
-        .compat()
         .err_into()
         .and_then(|msg| async {
-            channel.basic_ack(msg.delivery_tag, false).compat().await?;
+            channel
+                .basic_ack(msg.delivery_tag, BasicAckOptions { multiple: false })
+                .await?;
             let s =
                 String::from_utf8(msg.data).with_context(|e| format!("invalid UTF-8: {}", e))?;
             let response = serde_json::from_str::<AMQPResponse>(&s)
@@ -99,15 +97,15 @@ pub async fn amqp_process(
     receive_request: Receiver<AMQPRequest>,
     send_response: Sender<AMQPResponse>,
 ) -> Result<(), failure::Error> {
-    let client = amqputils::create_client(&config.amqp).await?;
+    let conn = amqputils::create_connection(&config.amqp).await?;
     let config = config.clone();
     let publisher = {
-        let channel = client.create_channel().compat().await?;
+        let channel = conn.create_channel().await?;
         let _queue = amqputils::declare_exchange_and_queue(&channel, &config.amqp).await?;
         amqp_publisher(channel, &config, receive_request)
     };
     let receiver = {
-        let channel = client.create_channel().compat().await?;
+        let channel = conn.create_channel().await?;
         amqp_receiver(channel, send_response)
     };
     try_join!(publisher.err_into(), receiver)?;

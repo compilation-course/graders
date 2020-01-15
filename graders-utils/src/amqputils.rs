@@ -1,9 +1,7 @@
-use futures::compat::Future01CompatExt;
 use futures::future::TryFutureExt;
 use lapin::options::{ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions};
 use lapin::types::FieldTable;
-use lapin::{Channel, Client, ConnectionProperties, ExchangeKind, Queue};
-use lapin_futures as lapin;
+use lapin::{Channel, Connection, ConnectionProperties, ExchangeKind, Queue};
 
 #[derive(Clone, Deserialize)]
 pub struct AMQPConfiguration {
@@ -38,14 +36,14 @@ pub struct AMQPResponse {
 }
 
 /// Return a client that will connect to a remote AMQP server.
-pub async fn create_client(config: &AMQPConfiguration) -> Result<Client, lapin::Error> {
+pub async fn create_connection(config: &AMQPConfiguration) -> Result<Connection, lapin::Error> {
     // TODO Check how to add heartbeat
-    let options = ConnectionProperties::default();
     let dest = format!("amqp://{}:{}/%2f", config.host, config.port);
-    Client::connect(&dest, options).compat().await.map_err(|e| {
-        warn!("error when connecting AMQP client to {}: {}", dest, e);
-        e
-    })
+    Connection::connect(&dest, ConnectionProperties::default())
+        .inspect_err(|e| {
+            warn!("error when connecting AMQP client to {}: {}", dest, e);
+        })
+        .await
 }
 
 pub async fn declare_exchange_and_queue(
@@ -73,10 +71,8 @@ async fn declare_exchange(
             },
             FieldTable::default(),
         )
-        .compat()
-        .map_err(move |e| {
+        .inspect_err(|e| {
             error!("cannot declare exchange {}: {}", exchange, e);
-            e
         })
         .await
 }
@@ -95,10 +91,8 @@ async fn declare_queue(
             },
             FieldTable::default(),
         )
-        .compat()
-        .map_err(move |e| {
+        .inspect_err(|e| {
             error!("could not declare queue {}: {}", queue, e);
-            e
         })
         .await
 }
@@ -115,13 +109,11 @@ async fn bind_queue(channel: &Channel, config: &AMQPConfiguration) -> Result<(),
             QueueBindOptions::default(),
             FieldTable::default(),
         )
-        .compat()
-        .map_err(move |e| {
+        .inspect_err(move |e| {
             error!(
                 "could not bind queue {} to exchange {} using routing key {}: {}",
                 queue, exchange, routing_key, e
             );
-            e
         })
         .await
 }
