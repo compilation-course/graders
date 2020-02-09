@@ -1,5 +1,4 @@
 use failure::Error;
-use serde_yaml;
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;

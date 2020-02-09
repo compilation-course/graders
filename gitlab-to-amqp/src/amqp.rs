@@ -7,7 +7,6 @@ use lapin::options::{
 };
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, Channel};
-use serde_json;
 use std::sync::Arc;
 
 use crate::config::Configuration;

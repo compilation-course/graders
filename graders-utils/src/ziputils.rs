@@ -7,7 +7,6 @@ use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
-use zip;
 use zip::write::{FileOptions, ZipWriter};
 
 /// Unzip `zip_file` in `dir`, ensure that all paths start with the specified

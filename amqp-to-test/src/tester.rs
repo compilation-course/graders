@@ -2,7 +2,6 @@ use failure::{bail, Error, ResultExt};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{SinkExt, StreamExt, TryFutureExt};
 use graders_utils::amqputils::{AMQPRequest, AMQPResponse};
-use serde_yaml;
 use std::collections::btree_map::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};

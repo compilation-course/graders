@@ -7,7 +7,6 @@ use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions};
 use lapin::types::FieldTable;
 use lapin::{BasicProperties, Channel, Queue};
-use serde_json;
 use std::mem;
 use std::sync::Arc;
 

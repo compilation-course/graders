@@ -6,11 +6,9 @@ use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::server::conn::AddrStream;
 use hyper::service;
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
-use serde_json;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
-use tokio;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 

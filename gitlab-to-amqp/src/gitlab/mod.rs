@@ -9,7 +9,6 @@ use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use graders_utils::amqputils::AMQPRequest;
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
-use serde_json;
 use std::fs;
 use std::io;
 use std::path::Path;
