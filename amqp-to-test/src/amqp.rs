@@ -6,7 +6,7 @@ use futures::stream::{StreamExt, TryStreamExt};
 use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
 use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions};
 use lapin::types::FieldTable;
-use lapin::{BasicProperties, Channel, Queue};
+use lapin::{BasicProperties, Channel};
 use std::mem;
 use std::sync::Arc;
 
@@ -15,7 +15,6 @@ use crate::config::Configuration;
 async fn amqp_receiver(
     channel: &Channel,
     config: &Arc<Configuration>,
-    queue: Queue,
     send_request: Sender<AMQPRequest>,
 ) -> Result<(), failure::Error> {
     let prefetch_count = config.tester.parallelism as u16;
@@ -24,7 +23,7 @@ async fn amqp_receiver(
         .await?;
     let stream = channel
         .basic_consume(
-            &queue,
+            &config.amqp.queue,
             "amqp-to-test",
             BasicConsumeOptions::default(),
             FieldTable::default(),
@@ -96,8 +95,8 @@ pub async fn amqp_process(
 ) -> Result<(), failure::Error> {
     let conn = amqputils::create_connection(&config.amqp).await?;
     let receiver_channel = conn.create_channel().await?;
-    let queue = amqputils::declare_exchange_and_queue(&receiver_channel, &config.amqp).await?;
-    let receiver = amqp_receiver(&receiver_channel, &config, queue, send_request);
+    amqputils::declare_exchange_and_queue(&receiver_channel, &config.amqp).await?;
+    let receiver = amqp_receiver(&receiver_channel, &config, send_request);
     let sender_channel = conn.create_channel().await?;
     let sender = amqp_sender(&sender_channel, &receiver_channel, receive_response);
     futures::try_join!(receiver, sender)?;

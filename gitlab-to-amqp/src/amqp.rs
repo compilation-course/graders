@@ -42,7 +42,7 @@ async fn amqp_receiver(
     channel: Channel,
     send_response: Sender<AMQPResponse>,
 ) -> Result<(), failure::Error> {
-    let result_queue = channel
+    channel
         .queue_declare(
             gitlab::RESULT_QUEUE,
             QueueDeclareOptions {
@@ -54,7 +54,7 @@ async fn amqp_receiver(
         .await?;
     let stream = channel
         .basic_consume(
-            &result_queue,
+            gitlab::RESULT_QUEUE,
             "gitlab-to-amqp",
             BasicConsumeOptions::default(),
             FieldTable::default(),
