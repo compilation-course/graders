@@ -65,7 +65,7 @@ There has been an error during the test for {}:
     }
     let groups = report
         .groups
-        .unwrap_or_else(|| vec![])
+        .unwrap_or_else(Vec::new)
         .iter()
         .filter(|group| group.grade != group.max_grade)
         .map(|group| {
