@@ -1,13 +1,12 @@
+use crate::errors::*;
 use crate::AMQPChannel;
 use futures::future::TryFutureExt;
-use lapin::{Connection, ConnectionProperties};
+use lapin::{CloseOnDrop, Connection, ConnectionProperties};
 use serde::de::Deserialize;
-use std::error::Error;
-use std::fmt;
-use std::ops::Deref;
+use std::rc::Rc;
 
 pub struct AMQPConnection {
-    pub(crate) inner: lapin::Connection,
+    pub(crate) inner: CloseOnDrop<Connection>,
 }
 
 impl AMQPConnection {
@@ -25,7 +24,9 @@ impl AMQPConnection {
 
     pub async fn create_channel(&self) -> Result<AMQPChannel, AMQPError> {
         let channel = self.inner.create_channel().await?;
-        Ok(AMQPChannel { inner: channel })
+        Ok(AMQPChannel {
+            inner: Rc::new(channel),
+        })
     }
 }
 
@@ -73,62 +74,4 @@ pub struct AMQPResponse {
     /// The delivery tag and result queue will be removed before message emission
     pub result_queue: String,
     pub delivery_tag: u64,
-}
-
-#[derive(Debug)]
-pub struct AMQPError {
-    message: String,
-    source: Option<Box<dyn std::error::Error + 'static + Send + Sync>>,
-}
-
-impl AMQPError {
-    pub fn new<S: Deref<Target = str>>(message: S) -> AMQPError {
-        AMQPError {
-            message: message.to_owned(),
-            source: None,
-        }
-    }
-
-    pub fn with<S: Deref<Target = str>, E: std::error::Error + 'static + Send + Sync>(
-        message: S,
-        error: E,
-    ) -> AMQPError {
-        AMQPError {
-            message: message.to_owned(),
-            source: Some(Box::new(error)),
-        }
-    }
-}
-
-impl fmt::Display for AMQPError {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(formatter, "{}", self.message)
-    }
-}
-
-impl Error for AMQPError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self.source {
-            Some(ref e) => Some(e.as_ref()),
-            None => None,
-        }
-    }
-}
-
-impl From<lapin::Error> for AMQPError {
-    fn from(error: lapin::Error) -> AMQPError {
-        AMQPError::with("AMQP communication error", error)
-    }
-}
-
-impl From<std::str::Utf8Error> for AMQPError {
-    fn from(error: std::str::Utf8Error) -> AMQPError {
-        AMQPError::with("UTF-8 decoding error", error)
-    }
-}
-
-impl From<serde_json::error::Error> for AMQPError {
-    fn from(error: serde_json::error::Error) -> AMQPError {
-        AMQPError::with("JSON decoding error", error)
-    }
 }

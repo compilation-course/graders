@@ -18,12 +18,9 @@ async fn amqp_publisher(
             let config = config.clone();
             async move {
                 info!("publishing AMQP job request {}", req.job_name);
-                channel.basic_publish(
-                    &config.amqp.exchange,
-                    &config.amqp.routing_key,
-                    &req,
-                )
-                .await
+                channel
+                    .basic_publish(&config.amqp.exchange, &config.amqp.routing_key, &req)
+                    .await
             }
         })
         .await
@@ -34,8 +31,9 @@ async fn amqp_receiver(
     send_response: Sender<AMQPResponse>,
 ) -> Result<(), AMQPError> {
     channel.queue_declare_durable(gitlab::RESULT_QUEUE).await?;
-    let stream =
-        channel.basic_consume(gitlab::RESULT_QUEUE, "gitlab-to-amqp").await?;
+    let stream = channel
+        .basic_consume(gitlab::RESULT_QUEUE, "gitlab-to-amqp")
+        .await?;
     info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
     let data = stream
         .err_into()
@@ -52,7 +50,7 @@ async fn amqp_receiver(
     send_response
         .sink_map_err(|e| {
             warn!("sink error: {}", e);
-            AMQPError::with("sink error", e)
+            AMQPError::new(format!("sink error: {}", e))
         })
         .send_all(&mut data)
         .inspect(|_| {
@@ -72,7 +70,7 @@ pub async fn amqp_process(
 ) -> Result<(), AMQPError> {
     let conn = AMQPConnection::new(&config.amqp)
         .await
-        .map_err(|e| AMQPError::with("cannot connect to AMQP server", e))?;
+        .map_err(AMQPError::from)?;
     let config = config.clone();
     let publisher = {
         let channel = conn.create_channel().await?;

@@ -15,10 +15,12 @@ async fn amqp_receiver(
 ) -> Result<(), AMQPError> {
     let prefetch_count = config.tester.parallelism as u16;
     channel.basic_qos(prefetch_count).await?;
-    let stream = channel.basic_consume(&config.amqp.queue, "amqp-to-test").await?;
+    let stream = channel
+        .basic_consume(&config.amqp.queue, "amqp-to-test")
+        .await?;
     let mut data = stream
         .map(|msg| {
-            let msg = msg.map_err(|e| AMQPError::with("incoming message error: {}", e))?;
+            let msg = msg?;
             let request = msg.decode_payload()?;
             Ok(AMQPRequest {
                 delivery_tag: Some(msg.delivery_tag()),
@@ -66,7 +68,9 @@ pub async fn amqp_process(
 ) -> Result<(), AMQPError> {
     let conn = AMQPConnection::new(&config.amqp).await?;
     let receiver_channel = conn.create_channel().await?;
-    receiver_channel.declare_exchange_and_queue(&config.amqp).await?;
+    receiver_channel
+        .declare_exchange_and_queue(&config.amqp)
+        .await?;
     let receiver = amqp_receiver(&receiver_channel, &config, send_request);
     let sender_channel = conn.create_channel().await?;
     let sender = amqp_sender(&sender_channel, &receiver_channel, receive_response);

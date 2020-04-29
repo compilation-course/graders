@@ -4,6 +4,8 @@ extern crate serde_derive;
 extern crate log;
 
 mod channel;
+mod errors;
 mod types;
 pub use channel::*;
+pub use errors::*;
 pub use types::*;
