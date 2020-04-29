@@ -1,2 +1,2 @@
 [workspace]
-members = ["builder", "gitlab-to-amqp", "graders-utils", "amqp-to-test", "xqueue-to-amqp"]
+members = ["builder", "gitlab-to-amqp", "graders-utils", "amqp-to-test"]
