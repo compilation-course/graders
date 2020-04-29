@@ -14,7 +14,7 @@ use clap::{load_yaml, App};
 use config::Configuration;
 use failure::Error;
 use futures::channel::mpsc;
-use futures::{stream, try_join, StreamExt, TryStreamExt};
+use futures::{stream, try_join, StreamExt, TryFutureExt, TryStreamExt};
 use std::process;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
@@ -43,7 +43,8 @@ async fn run() -> Result<(), Error> {
     let (send_request, receive_request) = mpsc::channel(16);
     let (send_response, receive_response) = mpsc::channel(16);
     let packager = gitlab::packager(&config, &cpu_access, receive_hook, send_request);
-    let amqp_process = amqp::amqp_process(&config, receive_request, send_response);
+    let amqp_process =
+        amqp::amqp_process(&config, receive_request, send_response).map_err(|e| e.into());
     let response_poster = receive_response
         .map(Ok)
         .try_for_each_concurrent(None, |response| {

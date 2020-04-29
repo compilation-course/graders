@@ -1,12 +1,12 @@
 pub mod api;
 
 use self::api::State;
+use amqp_utils::AMQPRequest;
 use failure::{format_err, Error};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{future, stream, SinkExt, Stream, StreamExt};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
-use graders_utils::amqputils::AMQPRequest;
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
 use std::fs;

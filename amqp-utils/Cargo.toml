@@ -1,0 +1,13 @@
+[package]
+name = "amqp-utils"
+version = "0.1.0"
+authors = ["Samuel Tardieu <sam@rfc1149.net>"]
+edition = "2018"
+
+[dependencies]
+futures = "0.3"
+lapin = {version = "0.31.0", features = ["futures"]}
+log = "0.4.6"
+serde = "1.0.103"
+serde_derive = "1.0.103"
+serde_json = "1.0.42"

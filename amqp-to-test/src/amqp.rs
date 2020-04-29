@@ -1,49 +1,33 @@
-use failure::ResultExt;
+use amqp_utils::{self, AMQPChannel, AMQPConnection, AMQPError, AMQPRequest, AMQPResponse};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::future;
 use futures::sink::SinkExt;
 use futures::stream::{StreamExt, TryStreamExt};
-use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
-use lapin::options::{BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, BasicQosOptions};
-use lapin::types::FieldTable;
-use lapin::{BasicProperties, Channel};
 use std::mem;
 use std::sync::Arc;
 
 use crate::config::Configuration;
 
 async fn amqp_receiver(
-    channel: &Channel,
+    channel: &AMQPChannel,
     config: &Arc<Configuration>,
     send_request: Sender<AMQPRequest>,
-) -> Result<(), failure::Error> {
+) -> Result<(), AMQPError> {
     let prefetch_count = config.tester.parallelism as u16;
-    channel
-        .basic_qos(prefetch_count, BasicQosOptions { global: false })
-        .await?;
-    let stream = channel
-        .basic_consume(
-            &config.amqp.queue,
-            "amqp-to-test",
-            BasicConsumeOptions::default(),
-            FieldTable::default(),
-        )
-        .await?;
+    channel.basic_qos(prefetch_count).await?;
+    let stream = channel.basic_consume(&config.amqp.queue, "amqp-to-test").await?;
     let mut data = stream
         .map(|msg| {
-            let msg = msg.with_context(|e| format!("incoming message error: {}", e))?;
-            let s =
-                String::from_utf8(msg.data).with_context(|e| format!("invalid UTF-8: {}", e))?;
-            let request =
-                serde_json::from_str(&s).with_context(|e| format!("cannot decode json: {}", e))?;
+            let msg = msg.map_err(|e| AMQPError::with("incoming message error: {}", e))?;
+            let request = msg.decode_payload()?;
             Ok(AMQPRequest {
-                delivery_tag: Some(msg.delivery_tag),
+                delivery_tag: Some(msg.delivery_tag()),
                 ..request
             })
         })
         .filter(|e| future::ready(e.is_ok()));
     send_request
-        .sink_map_err(|e| format_err!("error when receiving: {}", e))
+        .sink_map_err(|e| AMQPError::new(format!("error when receiving: {}", e)))
         .send_all(&mut data)
         .await?;
     Ok(())
@@ -52,10 +36,10 @@ async fn amqp_receiver(
 // Acks must be sent on the original channel. Sending concurrently
 // is supposed to be compatible with basic_consume.
 async fn amqp_sender(
-    channel: &Channel,
-    ack_channel: &Channel,
+    channel: &AMQPChannel,
+    ack_channel: &AMQPChannel,
     receive_response: Receiver<AMQPResponse>,
-) -> Result<(), failure::Error> {
+) -> Result<(), AMQPError> {
     let channel = channel.clone();
     let ack_channel = ack_channel.clone();
     receive_response
@@ -67,22 +51,9 @@ async fn amqp_sender(
             );
             let queue = mem::replace(&mut response.result_queue, "".to_owned());
             let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
-            channel
-                .basic_publish(
-                    "",
-                    &queue,
-                    BasicPublishOptions::default(),
-                    serde_json::to_string(&response)
-                        .unwrap()
-                        .as_bytes()
-                        .to_vec(),
-                    BasicProperties::default(),
-                )
-                .await?;
-            ack_channel
-                .basic_ack(delivery_tag, BasicAckOptions { multiple: false })
-                .await?;
-            Ok(()) as Result<(), failure::Error>
+            channel.basic_publish("", &queue, &response).await?;
+            ack_channel.basic_ack(delivery_tag).await?;
+            Ok(()) as Result<(), AMQPError>
         })
         .await?;
     Ok(())
@@ -92,10 +63,10 @@ pub async fn amqp_process(
     config: &Arc<Configuration>,
     send_request: Sender<AMQPRequest>,
     receive_response: Receiver<AMQPResponse>,
-) -> Result<(), failure::Error> {
-    let conn = amqputils::create_connection(&config.amqp).await?;
+) -> Result<(), AMQPError> {
+    let conn = AMQPConnection::new(&config.amqp).await?;
     let receiver_channel = conn.create_channel().await?;
-    amqputils::declare_exchange_and_queue(&receiver_channel, &config.amqp).await?;
+    receiver_channel.declare_exchange_and_queue(&config.amqp).await?;
     let receiver = amqp_receiver(&receiver_channel, &config, send_request);
     let sender_channel = conn.create_channel().await?;
     let sender = amqp_sender(&sender_channel, &receiver_channel, receive_response);

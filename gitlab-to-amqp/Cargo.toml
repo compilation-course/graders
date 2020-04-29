@@ -10,7 +10,6 @@ futures = "0.3"
 git2 = "0.13.2"
 hyper = "0.13"
 hyper-tls = "0.4"
-lapin = {version = "0.31.0", features = ["futures"]}
 log = "0.4.6"
 mktemp = "0.4.0"
 serde = "1.0.103"
@@ -24,6 +23,9 @@ pin-utils = "0.1.0-alpha.4"
 [dependencies.clap]
 features = ["yaml"]
 version = "2.33.0"
+
+[dependencies.amqp-utils]
+path = "../amqp-utils"
 
 [dependencies.graders-utils]
 path = "../graders-utils"

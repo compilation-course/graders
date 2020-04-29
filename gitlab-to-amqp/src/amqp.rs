@@ -1,22 +1,16 @@
-use failure::{format_err, ResultExt};
+use amqp_utils::{self, AMQPChannel, AMQPConnection, AMQPError, AMQPRequest, AMQPResponse};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{future, try_join, FutureExt, SinkExt, StreamExt, TryFutureExt, TryStreamExt};
-use graders_utils::amqputils::{self, AMQPRequest, AMQPResponse};
-use lapin::options::{
-    BasicAckOptions, BasicConsumeOptions, BasicPublishOptions, QueueDeclareOptions,
-};
-use lapin::types::FieldTable;
-use lapin::{BasicProperties, Channel};
 use std::sync::Arc;
 
 use crate::config::Configuration;
 use crate::gitlab;
 
 async fn amqp_publisher(
-    channel: Channel,
+    channel: AMQPChannel,
     config: &Arc<Configuration>,
     receive_request: Receiver<AMQPRequest>,
-) -> Result<(), lapin::Error> {
+) -> Result<(), AMQPError> {
     receive_request
         .map(Ok)
         .try_for_each(|req| {
@@ -24,61 +18,41 @@ async fn amqp_publisher(
             let config = config.clone();
             async move {
                 info!("publishing AMQP job request {}", req.job_name);
-                channel
-                    .basic_publish(
-                        &config.amqp.exchange,
-                        &config.amqp.routing_key,
-                        BasicPublishOptions::default(),
-                        serde_json::to_string(&req).unwrap().as_bytes().to_vec(),
-                        BasicProperties::default(),
-                    )
-                    .await
+                channel.basic_publish(
+                    &config.amqp.exchange,
+                    &config.amqp.routing_key,
+                    &req,
+                )
+                .await
             }
         })
         .await
 }
 
 async fn amqp_receiver(
-    channel: Channel,
+    channel: AMQPChannel,
     send_response: Sender<AMQPResponse>,
-) -> Result<(), failure::Error> {
-    channel
-        .queue_declare(
-            gitlab::RESULT_QUEUE,
-            QueueDeclareOptions {
-                durable: true,
-                ..Default::default()
-            },
-            FieldTable::default(),
-        )
-        .await?;
-    let stream = channel
-        .basic_consume(
-            gitlab::RESULT_QUEUE,
-            "gitlab-to-amqp",
-            BasicConsumeOptions::default(),
-            FieldTable::default(),
-        )
-        .await?;
+) -> Result<(), AMQPError> {
+    channel.queue_declare_durable(gitlab::RESULT_QUEUE).await?;
+    let stream =
+        channel.basic_consume(gitlab::RESULT_QUEUE, "gitlab-to-amqp").await?;
     info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
     let data = stream
         .err_into()
-        .and_then(|msg| async {
-            channel
-                .basic_ack(msg.delivery_tag, BasicAckOptions { multiple: false })
-                .await?;
-            let s =
-                String::from_utf8(msg.data).with_context(|e| format!("invalid UTF-8: {}", e))?;
-            let response = serde_json::from_str::<AMQPResponse>(&s)
-                .with_context(|e| format!("cannot decode json: {}", e))?;
-            Ok(response)
+        .and_then(|msg| {
+            let channel = channel.clone();
+            async move {
+                channel.basic_ack(msg.delivery_tag()).await?;
+                let response = msg.decode_payload()?;
+                Ok(response)
+            }
         })
         .filter(|r| future::ready(r.is_ok()));
     pin_utils::pin_mut!(data);
     send_response
         .sink_map_err(|e| {
             warn!("sink error: {}", e);
-            format_err!("sink error: {}", e)
+            AMQPError::with("sink error", e)
         })
         .send_all(&mut data)
         .inspect(|_| {
@@ -95,14 +69,14 @@ pub async fn amqp_process(
     config: &Arc<Configuration>,
     receive_request: Receiver<AMQPRequest>,
     send_response: Sender<AMQPResponse>,
-) -> Result<(), failure::Error> {
-    let conn = amqputils::create_connection(&config.amqp)
+) -> Result<(), AMQPError> {
+    let conn = AMQPConnection::new(&config.amqp)
         .await
-        .with_context(|e| format!("{} while connecting to AMQP server", e))?;
+        .map_err(|e| AMQPError::with("cannot connect to AMQP server", e))?;
     let config = config.clone();
     let publisher = {
         let channel = conn.create_channel().await?;
-        let _queue = amqputils::declare_exchange_and_queue(&channel, &config.amqp).await?;
+        let _queue = channel.declare_exchange_and_queue(&config.amqp).await?;
         amqp_publisher(channel, &config, receive_request)
     };
     let receiver = {

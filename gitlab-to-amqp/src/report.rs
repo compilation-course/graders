@@ -1,6 +1,6 @@
+use amqp_utils::AMQPResponse;
 use failure::Error;
 use gitlab::api::{self, State};
-use graders_utils::amqputils::AMQPResponse;
 use hyper::Request;
 
 use crate::config::Configuration;

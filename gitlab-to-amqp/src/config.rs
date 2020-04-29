@@ -1,5 +1,5 @@
+use amqp_utils::AMQPConfiguration;
 use failure::Error;
-use graders_utils::amqputils::AMQPConfiguration;
 use std::fs::{self, File};
 use std::io::Read;
 use std::net::IpAddr;
