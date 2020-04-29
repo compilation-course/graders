@@ -5,6 +5,7 @@ use std::ops::Deref;
 #[derive(Debug)]
 pub enum AMQPError {
     Json(serde_json::error::Error),
+    Lapin(lapin::Error),
     Simple(String),
     UTF8(std::str::Utf8Error),
 }
@@ -22,6 +23,7 @@ impl fmt::Display for AMQPError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             AMQPError::Json(e) => write!(formatter, "JSON decoding error: {}", e),
+            AMQPError::Lapin(e) => write!(formatter, "AMQP error: {}", e),
             AMQPError::Simple(s) => write!(formatter, "Error: {}", s),
             AMQPError::UTF8(e) => write!(formatter, "UTF-8 decoding error: {}", e),
         }
@@ -32,6 +34,7 @@ impl Error for AMQPError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             AMQPError::Json(ref e) => Some(e),
+            AMQPError::Lapin(ref e) => Some(e),
             AMQPError::Simple(_) => None,
             AMQPError::UTF8(ref e) => Some(e),
         }
@@ -40,7 +43,7 @@ impl Error for AMQPError {
 
 impl From<lapin::Error> for AMQPError {
     fn from(error: lapin::Error) -> AMQPError {
-        AMQPError::Simple(format!("AMQP communication error: {}", error))
+        AMQPError::Lapin(error)
     }
 }
 
