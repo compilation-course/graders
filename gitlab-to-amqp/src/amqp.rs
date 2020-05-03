@@ -50,7 +50,7 @@ async fn amqp_receiver(
     send_response
         .sink_map_err(|e| {
             warn!("sink error: {}", e);
-            AMQPError::new(format!("sink error: {}", e))
+            AMQPError::from(e)
         })
         .send_all(&mut data)
         .inspect(|_| {
