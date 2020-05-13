@@ -51,6 +51,7 @@ pub struct AMQPConfiguration {
     pub exchange: String,
     pub routing_key: String,
     pub queue: String,
+    pub reports_routing_key: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

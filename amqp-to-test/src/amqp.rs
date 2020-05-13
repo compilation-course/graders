@@ -44,22 +44,38 @@ async fn amqp_sender(
     channel: &AMQPChannel,
     ack_channel: &AMQPChannel,
     receive_response: Receiver<AMQPResponse>,
+    reports_routing_key: Option<String>,
 ) -> Result<(), AMQPError> {
     let channel = channel.clone();
     let ack_channel = ack_channel.clone();
+    let reports_routing_key = reports_routing_key.clone();
     receive_response
-        .map(move |e| Ok((e, channel.clone(), ack_channel.clone())))
-        .try_for_each(move |(mut response, channel, ack_channel)| async move {
-            info!(
-                "sending response {} to queue {}",
-                response.job_name, response.result_queue
-            );
-            let queue = mem::replace(&mut response.result_queue, "".to_owned());
-            let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
-            channel.basic_publish("", &queue, &response).await?;
-            ack_channel.basic_ack(delivery_tag).await?;
-            Ok(()) as Result<(), AMQPError>
+        .map(move |e| {
+            Ok((
+                e,
+                channel.clone(),
+                ack_channel.clone(),
+                reports_routing_key.clone(),
+            ))
         })
+        .try_for_each(
+            move |(mut response, channel, ack_channel, reports_routing_key)| async move {
+                info!(
+                    "sending response {} to queue {}",
+                    response.job_name, response.result_queue
+                );
+                let queue = mem::replace(&mut response.result_queue, "".to_owned());
+                let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
+                channel.basic_publish("", &queue, &response).await?;
+                ack_channel.basic_ack(delivery_tag).await?;
+                if let Some(reports_routing_key) = reports_routing_key {
+                    channel
+                        .basic_publish("", &reports_routing_key, &response)
+                        .await?;
+                }
+                Ok(()) as Result<(), AMQPError>
+            },
+        )
         .await?;
     Ok(())
 }
@@ -76,7 +92,12 @@ pub async fn amqp_process(
         .await?;
     let receiver = amqp_receiver(&receiver_channel, &config, send_request);
     let sender_channel = conn.create_channel().await?;
-    let sender = amqp_sender(&sender_channel, &receiver_channel, receive_response);
+    let sender = amqp_sender(
+        &sender_channel,
+        &receiver_channel,
+        receive_response,
+        config.amqp.reports_routing_key.clone(),
+    );
     futures::try_join!(receiver, sender)?;
     Ok(())
 }
