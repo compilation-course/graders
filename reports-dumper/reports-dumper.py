@@ -15,6 +15,10 @@ if "reports_routing_key" not in amqp_conf:
 try:
     results = csv.DictReader(open(sys.argv[2]))
     results = dict((row["name"], row) for row in results)
+    for d in results.values():
+        for (k, v) in d.items():
+            try: d[k] = float(v)
+            except ValueError: pass
 except FileNotFoundError:
     results = {}
 
