@@ -54,9 +54,10 @@ def callback(ch, method, properties, body):
     grade = result["grade"]
     max_grade = result["max-grade"]
     add_result(repository, lab, grade, max_grade)
+    ch.basic_ack(method.delivery_tag)
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(amqp_conf["host"], amqp_conf["port"]))
 channel = connection.channel()
 channel.queue_declare(amqp_conf["reports_routing_key"], durable = True)
-channel.basic_consume(queue=amqp_conf["reports_routing_key"], auto_ack=True, on_message_callback=callback)
+channel.basic_consume(queue=amqp_conf["reports_routing_key"], on_message_callback=callback)
 channel.start_consuming()
