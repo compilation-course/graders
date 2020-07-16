@@ -6,13 +6,13 @@ use lapin::options::{
     ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions,
 };
 use lapin::types::FieldTable;
-use lapin::{BasicProperties, Channel, CloseOnDrop, ExchangeKind};
+use lapin::{BasicProperties, Channel, ExchangeKind};
 use serde::ser::Serialize;
 use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct AMQPChannel {
-    pub(crate) inner: Rc<CloseOnDrop<Channel>>,
+    pub(crate) inner: Rc<Channel>,
 }
 
 impl AMQPChannel {
@@ -121,7 +121,7 @@ impl AMQPChannel {
             )
             .await?;
         Ok(consumer
-            .map_ok(|d| AMQPDelivery { inner: d })
+            .map_ok(|(_channel, delivery)| AMQPDelivery { inner: delivery })
             .map_err(AMQPError::from))
     }
 }

@@ -1,12 +1,12 @@
 use crate::errors::*;
 use crate::AMQPChannel;
 use futures::future::TryFutureExt;
-use lapin::{CloseOnDrop, Connection, ConnectionProperties};
+use lapin::{Connection, ConnectionProperties};
 use serde::de::Deserialize;
 use std::rc::Rc;
 
 pub struct AMQPConnection {
-    pub(crate) inner: CloseOnDrop<Connection>,
+    pub(crate) inner: Connection,
 }
 
 impl AMQPConnection {
