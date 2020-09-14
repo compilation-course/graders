@@ -67,6 +67,7 @@ async fn download_url(dir: &PathBuf, url: &str, prefix: &str) -> Result<PathBuf,
         .write_all(&zip.bytes().await?[..])
         .await
         .with_context(|e| format!("cannot write zip file: {}", e))?;
+    target.sync_all().await?;
     Ok(target_file)
 }
 
