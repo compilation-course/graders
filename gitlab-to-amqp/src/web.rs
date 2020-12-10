@@ -1,13 +1,13 @@
 use failure::{format_err, ResultExt};
 use futures::channel::mpsc::Sender;
 use futures::SinkExt;
-use graders_utils::fileutils;
 use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::server::conn::AddrStream;
 use hyper::service;
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
+use std::ffi::OsStr;
 use std::net::SocketAddr;
-use std::path::Path;
+use std::path::{Component, Path};
 use std::sync::Arc;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
@@ -67,9 +67,7 @@ pub async fn web_server(
                                     .body(Body::empty())?,
                             )
                         }
-                        (Method::GET, path)
-                            if path.starts_with("/zips/") && !fileutils::contains_dotdot(path) =>
-                        {
+                        (Method::GET, path) if is_acceptable_path_name(path) => {
                             let path = Path::new(path);
                             let zip_dir = Path::new(&config.package.zip_dir);
                             let zip_file =
@@ -106,6 +104,23 @@ pub async fn web_server(
     // let make_svc = service::make_service_fn(|_| async move { Ok::<_, Infallible>(svc) });
     Server::bind(&addr).serve(make_svc).await?;
     Ok(())
+}
+
+/// Check that the path starts with /zips/ and does not try to get
+/// out of this hierarchy.
+fn is_acceptable_path_name(path: &str) -> bool {
+    let mut path = Path::new(path).components();
+    path.next() == Some(Component::RootDir)
+        && path.next() == Some(Component::Normal(OsStr::new("zips")))
+        && path.all(|c| c != Component::ParentDir)
+}
+
+#[test]
+fn test_is_acceptable_path_name() {
+    assert!(is_acceptable_path_name("/zips/foo"));
+    assert!(!is_acceptable_path_name("zips/foo"));
+    assert!(!is_acceptable_path_name("foo/bar"));
+    assert!(!is_acceptable_path_name("/zips/../foo"));
 }
 
 fn not_found() -> Response<Body> {
