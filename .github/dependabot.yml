@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/amqp-to-test/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "cargo"
+    directory: "/amqp-utils/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "cargo"
+    directory: "/builder/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "cargo"
+    directory: "/gitlab-to-amqp/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "cargo"
+    directory: "/graders-utils/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "pip"
+    directory: "reports-dumper"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
