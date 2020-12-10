@@ -19,6 +19,7 @@ serde_yaml = "0.8.11"
 zip = "0.5.2"
 failure = "0.1.6"
 pin-utils = "0.1.0-alpha.4"
+libc = "0.2.81"
 
 [dependencies.clap]
 features = ["yaml"]

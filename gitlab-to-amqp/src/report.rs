@@ -32,15 +32,17 @@ pub struct Test {
     signal: Option<u32>,
 }
 
-fn signal_to_explanation(signal: u32) -> &'static str {
-    match signal {
-        4 => "illegal instruction",
-        6 => "abort, possibly because of a failed assertion",
-        8 => "arithmetic exception",
-        9 => "program killed, possibly because of an infinite loop or memory exhaustion",
-        10 => "bus error",
-        11 => "segmentation fault",
-        _ => "crash",
+fn signal_to_explanation(signal: u32) -> String {
+    match signal as i32 {
+        libc::SIGILL => String::from("illegal instruction"),
+        libc::SIGABRT => String::from("abort, possibly because of a failed assertion"),
+        libc::SIGFPE => String::from("arithmetic exception"),
+        libc::SIGKILL => String::from(
+            "program killed, possibly because of an infinite loop or memory exhaustion",
+        ),
+        libc::SIGBUS => String::from("bus error"),
+        libc::SIGSEGV => String::from("segmentation fault"),
+        s => format!("crash (signal {})", s),
     }
 }
 
