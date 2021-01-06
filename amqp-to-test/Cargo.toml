@@ -25,5 +25,5 @@ path = "../amqp-utils"
 path = "../graders-utils"
 
 [dependencies.tokio]
-features = ["macros", "rt-threaded"]
-version = "0.2.9"
+features = ["macros", "rt-multi-thread", "sync"]
+version = "1.0"
