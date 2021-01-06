@@ -8,8 +8,7 @@ edition = "2018"
 env_logger = "0.8.2"
 futures = "0.3"
 git2 = "0.13.2"
-hyper = "0.13"
-hyper-tls = "0.4"
+hyper-tls = "0.5"
 log = "0.4.6"
 mktemp = "0.4.0"
 serde = "1.0.103"
@@ -31,6 +30,10 @@ path = "../amqp-utils"
 [dependencies.graders-utils]
 path = "../graders-utils"
 
+[dependencies.hyper]
+features = ["server"]
+version = "0.14"
+
 [dependencies.uuid]
 features = ["v4"]
 version = "0.8.1"
@@ -40,5 +43,5 @@ features = ["serde"]
 version = "2.1.0"
 
 [dependencies.tokio]
-features = ["macros", "rt-threaded"]
-version = "0.2.9"
+features = ["macros", "rt-multi-thread"]
+version = "1.0"
