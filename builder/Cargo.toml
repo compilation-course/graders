@@ -19,5 +19,5 @@ failure_derive = "0.1.6"
 path = "../graders-utils"
 
 [dependencies.tokio]
-features = ["macros", "rt-threaded"]
-version = "0.2.9"
+features = ["macros", "rt-multi-thread"]
+version = "1.0"
