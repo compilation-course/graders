@@ -1,17 +1,17 @@
 use crate::errors::*;
-use crate::AMQPChannel;
+use crate::AmqpChannel;
 use futures::future::TryFutureExt;
 use lapin::{Connection, ConnectionProperties};
 use serde::de::Deserialize;
 use std::rc::Rc;
 
-pub struct AMQPConnection {
+pub struct AmqpConnection {
     pub(crate) inner: Connection,
 }
 
-impl AMQPConnection {
+impl AmqpConnection {
     /// Return a client that will connect to a remote AMQP server.
-    pub async fn new(config: &AMQPConfiguration) -> Result<AMQPConnection, AMQPError> {
+    pub async fn new(config: &AmqpConfiguration) -> Result<AmqpConnection, AmqpError> {
         // TODO Check how to add heartbeat
         let dest = format!("amqp://{}:{}/%2f", config.host, config.port);
         let connection = Connection::connect(&dest, ConnectionProperties::default())
@@ -19,33 +19,33 @@ impl AMQPConnection {
                 warn!("error when connecting AMQP client to {}: {}", dest, e);
             })
             .await?;
-        Ok(AMQPConnection { inner: connection })
+        Ok(AmqpConnection { inner: connection })
     }
 
-    pub async fn create_channel(&self) -> Result<AMQPChannel, AMQPError> {
+    pub async fn create_channel(&self) -> Result<AmqpChannel, AmqpError> {
         let channel = self.inner.create_channel().await?;
-        Ok(AMQPChannel {
+        Ok(AmqpChannel {
             inner: Rc::new(channel),
         })
     }
 }
 
-pub struct AMQPDelivery {
+pub struct AmqpDelivery {
     pub(crate) inner: lapin::message::Delivery,
 }
 
-impl AMQPDelivery {
+impl AmqpDelivery {
     pub fn delivery_tag(&self) -> u64 {
         self.inner.delivery_tag
     }
-    pub fn decode_payload<'de, T: Deserialize<'de>>(&'de self) -> Result<T, AMQPError> {
+    pub fn decode_payload<'de, T: Deserialize<'de>>(&'de self) -> Result<T, AmqpError> {
         let s = std::str::from_utf8(&self.inner.data)?;
         Ok(serde_json::from_str::<T>(&s)?)
     }
 }
 
 #[derive(Clone, Deserialize)]
-pub struct AMQPConfiguration {
+pub struct AmqpConfiguration {
     pub host: String,
     pub port: u16,
     pub exchange: String,
@@ -55,7 +55,7 @@ pub struct AMQPConfiguration {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AMQPRequest {
+pub struct AmqpRequest {
     pub job_name: String,
     pub lab: String,
     pub dir: String,
@@ -67,7 +67,7 @@ pub struct AMQPRequest {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AMQPResponse {
+pub struct AmqpResponse {
     pub job_name: String,
     pub lab: String,
     pub opaque: String,

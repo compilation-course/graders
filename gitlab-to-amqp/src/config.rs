@@ -1,4 +1,4 @@
-use amqp_utils::AMQPConfiguration;
+use amqp_utils::AmqpConfiguration;
 use failure::Error;
 use std::fs::{self, File};
 use std::io::Read;
@@ -12,7 +12,7 @@ pub struct Configuration {
     pub gitlab: GitlabConfiguration,
     pub package: PackageConfiguration,
     pub labs: Vec<LabConfiguration>,
-    pub amqp: AMQPConfiguration,
+    pub amqp: AmqpConfiguration,
 }
 
 #[derive(Clone, Deserialize)]

@@ -1,4 +1,4 @@
-use amqp_utils::AMQPResponse;
+use amqp_utils::AmqpResponse;
 use failure::Error;
 use gitlab::api::{self, State};
 use hyper::Request;
@@ -122,7 +122,7 @@ There has been an error during the test for {}:
 
 pub fn response_to_post(
     config: &Configuration,
-    response: &AMQPResponse,
+    response: &AmqpResponse,
 ) -> Result<Vec<Request<String>>, Error> {
     let (report, grade, max_grade) = yaml_to_markdown(&response.lab, &response.yaml_result)?;
     let (hook, zip) = gitlab::from_opaque(&response.opaque)?;

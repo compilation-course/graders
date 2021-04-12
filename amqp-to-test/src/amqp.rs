@@ -1,4 +1,4 @@
-use amqp_utils::{self, AMQPChannel, AMQPConnection, AMQPError, AMQPRequest, AMQPResponse};
+use amqp_utils::{self, AmqpChannel, AmqpConnection, AmqpError, AmqpRequest, AmqpResponse};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::future;
 use futures::sink::SinkExt;
@@ -9,10 +9,10 @@ use std::sync::Arc;
 use crate::config::Configuration;
 
 async fn amqp_receiver(
-    channel: &AMQPChannel,
+    channel: &AmqpChannel,
     config: &Arc<Configuration>,
-    send_request: Sender<AMQPRequest>,
-) -> Result<(), AMQPError> {
+    send_request: Sender<AmqpRequest>,
+) -> Result<(), AmqpError> {
     let prefetch_count = config.tester.parallelism as u16;
     channel.basic_qos(prefetch_count).await?;
     let stream = channel
@@ -22,7 +22,7 @@ async fn amqp_receiver(
         .map(|msg| {
             let msg = msg?;
             let request = msg.decode_payload()?;
-            Ok(AMQPRequest {
+            Ok(AmqpRequest {
                 delivery_tag: Some(msg.delivery_tag()),
                 ..request
             })
@@ -31,7 +31,7 @@ async fn amqp_receiver(
     send_request
         .sink_map_err(|e| {
             warn!("sink error: {}", e);
-            AMQPError::from(e)
+            AmqpError::from(e)
         })
         .send_all(&mut data)
         .await?;
@@ -41,11 +41,11 @@ async fn amqp_receiver(
 // Acks must be sent on the original channel. Sending concurrently
 // is supposed to be compatible with basic_consume.
 async fn amqp_sender(
-    channel: &AMQPChannel,
-    ack_channel: &AMQPChannel,
-    receive_response: Receiver<AMQPResponse>,
+    channel: &AmqpChannel,
+    ack_channel: &AmqpChannel,
+    receive_response: Receiver<AmqpResponse>,
     reports_routing_key: Option<String>,
-) -> Result<(), AMQPError> {
+) -> Result<(), AmqpError> {
     let channel = channel.clone();
     let ack_channel = ack_channel.clone();
     let reports_routing_key = reports_routing_key.clone();
@@ -77,7 +77,7 @@ async fn amqp_sender(
                         .basic_publish("", &reports_routing_key, &response)
                         .await?;
                 }
-                Ok(()) as Result<(), AMQPError>
+                Ok(()) as Result<(), AmqpError>
             },
         )
         .await?;
@@ -86,10 +86,10 @@ async fn amqp_sender(
 
 pub async fn amqp_process(
     config: &Arc<Configuration>,
-    send_request: Sender<AMQPRequest>,
-    receive_response: Receiver<AMQPResponse>,
-) -> Result<(), AMQPError> {
-    let conn = AMQPConnection::new(&config.amqp).await?;
+    send_request: Sender<AmqpRequest>,
+    receive_response: Receiver<AmqpResponse>,
+) -> Result<(), AmqpError> {
+    let conn = AmqpConnection::new(&config.amqp).await?;
     let receiver_channel = conn.create_channel().await?;
     receiver_channel
         .declare_exchange_and_queue(&config.amqp)

@@ -1,4 +1,4 @@
-use amqp_utils::{self, AMQPChannel, AMQPConnection, AMQPError, AMQPRequest, AMQPResponse};
+use amqp_utils::{self, AmqpChannel, AmqpConnection, AmqpError, AmqpRequest, AmqpResponse};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{future, try_join, FutureExt, SinkExt, StreamExt, TryFutureExt, TryStreamExt};
 use std::sync::Arc;
@@ -7,10 +7,10 @@ use crate::config::Configuration;
 use crate::gitlab;
 
 async fn amqp_publisher(
-    channel: AMQPChannel,
+    channel: AmqpChannel,
     config: &Arc<Configuration>,
-    receive_request: Receiver<AMQPRequest>,
-) -> Result<(), AMQPError> {
+    receive_request: Receiver<AmqpRequest>,
+) -> Result<(), AmqpError> {
     receive_request
         .map(Ok)
         .try_for_each(|req| {
@@ -27,9 +27,9 @@ async fn amqp_publisher(
 }
 
 async fn amqp_receiver(
-    channel: AMQPChannel,
-    send_response: Sender<AMQPResponse>,
-) -> Result<(), AMQPError> {
+    channel: AmqpChannel,
+    send_response: Sender<AmqpResponse>,
+) -> Result<(), AmqpError> {
     channel.queue_declare_durable(gitlab::RESULT_QUEUE).await?;
     let stream = channel
         .basic_consume(gitlab::RESULT_QUEUE, "gitlab-to-amqp")
@@ -50,7 +50,7 @@ async fn amqp_receiver(
     send_response
         .sink_map_err(|e| {
             warn!("sink error: {}", e);
-            AMQPError::from(e)
+            AmqpError::from(e)
         })
         .send_all(&mut data)
         .inspect(|_| {
@@ -65,12 +65,12 @@ async fn amqp_receiver(
 
 pub async fn amqp_process(
     config: &Arc<Configuration>,
-    receive_request: Receiver<AMQPRequest>,
-    send_response: Sender<AMQPResponse>,
-) -> Result<(), AMQPError> {
-    let conn = AMQPConnection::new(&config.amqp)
+    receive_request: Receiver<AmqpRequest>,
+    send_response: Sender<AmqpResponse>,
+) -> Result<(), AmqpError> {
+    let conn = AmqpConnection::new(&config.amqp)
         .await
-        .map_err(AMQPError::from)?;
+        .map_err(AmqpError::from)?;
     let config = config.clone();
     let publisher = {
         let channel = conn.create_channel().await?;
