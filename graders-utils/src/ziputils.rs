@@ -12,7 +12,7 @@ use zip::write::{FileOptions, ZipWriter};
 /// Unzip `zip_file` in `dir`, ensure that all paths start with the specified
 /// `prefix` directory and a slash and return the path to this directory.
 /// `zip_file` may be an URL starting with `http://` or `https://`.
-pub async fn unzip(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
+pub async fn unzip(dir: &Path, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
     if zip_file.starts_with("http://") || zip_file.starts_with("https://") {
         let downloaded_file = download_url(dir, zip_file, prefix).await?;
         unzip_file(dir, downloaded_file.to_str().unwrap(), prefix)
@@ -21,7 +21,7 @@ pub async fn unzip(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBu
     }
 }
 
-fn unzip_file(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
+fn unzip_file(dir: &Path, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
     let with_slash = format!("{}/", prefix);
     let reader = File::open(zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
@@ -51,7 +51,7 @@ fn unzip_file(dir: &PathBuf, zip_file: &str, prefix: &str) -> Result<PathBuf, fa
     Ok(dir)
 }
 
-async fn download_url(dir: &PathBuf, url: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
+async fn download_url(dir: &Path, url: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
     let zip = reqwest::get(url)
         .await
         .with_context(|e| format!("cannot retrieve {}: {}", url, e))?;
@@ -80,8 +80,8 @@ pub fn zip_recursive(dir: &Path, top_level: &Path, zip_file: &Path) -> Result<()
 
 fn add_to_zip(
     zip_file: &mut ZipWriter<File>,
-    dir: &PathBuf,
-    dir_in_zip: &PathBuf,
+    dir: &Path,
+    dir_in_zip: &Path,
 ) -> Result<(), io::Error> {
     zip_file.add_directory(
         format!("{}/", dir_in_zip.to_string_lossy()),
