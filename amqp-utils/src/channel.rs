@@ -1,4 +1,4 @@
-use crate::{AMQPConfiguration, AMQPDelivery, AMQPError};
+use crate::{AmqpConfiguration, AmqpDelivery, AmqpError};
 use futures::future::TryFutureExt;
 use futures::stream::{Stream, TryStreamExt};
 use lapin::options::{
@@ -11,15 +11,15 @@ use serde::ser::Serialize;
 use std::rc::Rc;
 
 #[derive(Clone)]
-pub struct AMQPChannel {
+pub struct AmqpChannel {
     pub(crate) inner: Rc<Channel>,
 }
 
-impl AMQPChannel {
+impl AmqpChannel {
     pub async fn declare_exchange_and_queue(
         &self,
-        config: &AMQPConfiguration,
-    ) -> Result<(), AMQPError> {
+        config: &AmqpConfiguration,
+    ) -> Result<(), AmqpError> {
         self.inner
             .exchange_declare(
                 &config.exchange,
@@ -62,7 +62,7 @@ impl AMQPChannel {
         exchange: &str,
         routing_key: &str,
         data: &T,
-    ) -> Result<(), AMQPError>
+    ) -> Result<(), AmqpError>
     where
         T: ?Sized + Serialize,
     {
@@ -78,21 +78,21 @@ impl AMQPChannel {
         Ok(())
     }
 
-    pub async fn basic_ack(&self, delivery_tag: u64) -> Result<(), AMQPError> {
+    pub async fn basic_ack(&self, delivery_tag: u64) -> Result<(), AmqpError> {
         self.inner
             .basic_ack(delivery_tag, BasicAckOptions { multiple: false })
             .await?;
         Ok(())
     }
 
-    pub async fn basic_qos(&self, prefetch_count: u16) -> Result<(), AMQPError> {
+    pub async fn basic_qos(&self, prefetch_count: u16) -> Result<(), AmqpError> {
         self.inner
             .basic_qos(prefetch_count, BasicQosOptions { global: false })
             .await?;
         Ok(())
     }
 
-    pub async fn queue_declare_durable(&self, queue_name: &str) -> Result<(), AMQPError> {
+    pub async fn queue_declare_durable(&self, queue_name: &str) -> Result<(), AmqpError> {
         self.inner
             .queue_declare(
                 queue_name,
@@ -110,7 +110,7 @@ impl AMQPChannel {
         &self,
         queue_name: &str,
         consumer_tag: &str,
-    ) -> Result<impl Stream<Item = Result<AMQPDelivery, AMQPError>>, AMQPError> {
+    ) -> Result<impl Stream<Item = Result<AmqpDelivery, AmqpError>>, AmqpError> {
         let consumer = self
             .inner
             .basic_consume(
@@ -121,7 +121,7 @@ impl AMQPChannel {
             )
             .await?;
         Ok(consumer
-            .map_ok(|(_channel, delivery)| AMQPDelivery { inner: delivery })
-            .map_err(AMQPError::from))
+            .map_ok(|(_channel, delivery)| AmqpDelivery { inner: delivery })
+            .map_err(AmqpError::from))
     }
 }

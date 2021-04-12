@@ -1,7 +1,7 @@
 pub mod api;
 
 use self::api::State;
-use amqp_utils::AMQPRequest;
+use amqp_utils::AmqpRequest;
 use failure::{format_err, Error};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{future, stream, SinkExt, Stream, StreamExt};
@@ -198,11 +198,11 @@ fn labs_result_to_stream(
     base_url: &Url,
     hook: &GitlabHook,
     labs: Vec<(String, String, String)>,
-) -> impl Stream<Item = AMQPRequest> {
+) -> impl Stream<Item = AmqpRequest> {
     let hook = hook.clone();
     let base_url = base_url.clone();
     stream::iter(labs.into_iter().map(move |(lab, dir, zip)| {
-        AMQPRequest {
+        AmqpRequest {
             job_name: format!(
                 "[gitlab:{}:{}:{}:{}:{}]",
                 &hook.repository.name,
@@ -230,7 +230,7 @@ pub async fn packager(
     config: &Arc<Configuration>,
     cpu_access: &Semaphore,
     receive_hook: Receiver<GitlabHook>,
-    send_request: Sender<AMQPRequest>,
+    send_request: Sender<AmqpRequest>,
 ) -> Result<(), failure::Error> {
     let labs = receive_hook
         .then(move |hook: GitlabHook| {

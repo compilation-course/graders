@@ -1,4 +1,4 @@
-use amqp_utils::AMQPConfiguration;
+use amqp_utils::AmqpConfiguration;
 use failure::Error;
 use std::fs::File;
 use std::io::Read;
@@ -7,7 +7,7 @@ use crate::tester::TesterConfiguration;
 
 #[derive(Deserialize)]
 pub struct Configuration {
-    pub amqp: AMQPConfiguration,
+    pub amqp: AmqpConfiguration,
     pub tester: TesterConfiguration,
 }
 

@@ -1,4 +1,4 @@
-use amqp_utils::{AMQPRequest, AMQPResponse};
+use amqp_utils::{AmqpRequest, AmqpResponse};
 use failure::{bail, Error, ResultExt};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{SinkExt, StreamExt, TryFutureExt};
@@ -30,7 +30,7 @@ pub struct TesterConfiguration {
 /// YAML output or a descriptive error.
 async fn execute(
     config: &TesterConfiguration,
-    request: &AMQPRequest,
+    request: &AmqpRequest,
     cpu_access: Arc<Semaphore>,
 ) -> Result<String, Error> {
     let test_file = match config.test_files.get(&request.lab) {
@@ -105,14 +105,14 @@ async fn execute(
 /// YAML output or response.
 async fn execute_request(
     config: &TesterConfiguration,
-    request: AMQPRequest,
+    request: AmqpRequest,
     cpu_access: Arc<Semaphore>,
-) -> AMQPResponse {
+) -> AmqpResponse {
     let yaml = match execute(config, &request, cpu_access).await {
         Ok(y) => y,
         Err(e) => yaml_error(&e),
     };
-    AMQPResponse {
+    AmqpResponse {
         job_name: request.job_name,
         lab: request.lab,
         opaque: request.opaque,
@@ -142,8 +142,8 @@ fn yaml_error(error: &Error) -> String {
 /// Start the executors on the current thread
 pub async fn start_executor(
     config: &Arc<config::Configuration>,
-    receive_request: Receiver<AMQPRequest>,
-    send_response: Sender<AMQPResponse>,
+    receive_request: Receiver<AmqpRequest>,
+    send_response: Sender<AmqpResponse>,
 ) {
     let cpu_access = Arc::new(Semaphore::new(config.tester.parallelism));
     receive_request
