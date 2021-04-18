@@ -26,6 +26,7 @@ pub struct ServerConfiguration {
 pub struct GitlabConfiguration {
     pub token: String,
     pub base_url: Url,
+    pub secret_token: Option<String>,
 }
 
 #[derive(Clone, Deserialize)]

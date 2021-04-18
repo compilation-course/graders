@@ -44,6 +44,19 @@ pub async fn web_server(
                                     error!("error when decoding body: {}", e);
                                     format_err!("error when decoding body: {}", e)
                                 })?;
+                            if let Some(secret_token) = config.gitlab.secret_token.clone() {
+                                if let Some(from_request) = head
+                                    .headers
+                                    .get("X-Gitlab-Token")
+                                    .and_then(|h| h.to_str().ok())
+                                {
+                                    if secret_token != from_request {
+                                        failure::bail!("incorrect secret token sent to the hook");
+                                    }
+                                } else {
+                                    failure::bail!("missing secret token with hook");
+                                }
+                            }
                             if hook.object_kind != "push" {
                                 trace!(
                                     "received unknown object kind for {}: {}",
