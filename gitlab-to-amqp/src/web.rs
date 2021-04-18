@@ -51,10 +51,20 @@ pub async fn web_server(
                                     .and_then(|h| h.to_str().ok())
                                 {
                                     if secret_token != from_request {
-                                        failure::bail!("incorrect secret token sent to the hook");
+                                        error!("incorrect secret token sent to the hook");
+                                        return Ok::<_, failure::Error>(
+                                            Response::builder()
+                                                .status(StatusCode::FORBIDDEN)
+                                                .body(Body::from("incorrect secret token"))?,
+                                        );
                                     }
                                 } else {
-                                    failure::bail!("missing secret token with hook");
+                                    error!("missing secret token with hook");
+                                    return Ok::<_, failure::Error>(
+                                        Response::builder()
+                                            .status(StatusCode::FORBIDDEN)
+                                            .body(Body::from("missing secret token"))?,
+                                    );
                                 }
                             }
                             if hook.object_kind != "push" {
