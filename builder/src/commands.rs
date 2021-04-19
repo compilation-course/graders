@@ -87,7 +87,7 @@ fn check_executable_bits(opt: &Opt) -> Result<(), Error> {
         let path = [&opt.src, p].iter().cloned().collect::<PathBuf>();
         if path.exists() && !path.is_executable() {
             bail!(
-                "Some file (e.g, {}) should be executable, but the executable bit is not set",
+                "Some files (e.g, {}) should be executable, but the executable bit is not set",
                 p
             );
         }
