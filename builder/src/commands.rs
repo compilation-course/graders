@@ -1,6 +1,7 @@
 use super::Opt;
 use failure::{Error, ResultExt};
-use std::path::Path;
+use is_executable::IsExecutable;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 #[derive(Fail, Debug)]
@@ -81,11 +82,25 @@ fn configure(opt: &Opt) -> Result<(), Error> {
     configure.and_then(|_| make(opt))
 }
 
+fn check_executable_bits(opt: &Opt) -> Result<(), Error> {
+    for &p in &["configure", "autogen.sh"] {
+        let path = [&opt.src, p].iter().cloned().collect::<PathBuf>();
+        if path.exists() && !path.is_executable() {
+            bail!(
+                "Some file (e.g, {}) should be executable, but the executable bit is not set",
+                p
+            );
+        }
+    }
+    Ok(())
+}
+
 fn autogen(opt: &Opt) -> Result<(), Error> {
     exec(opt, "./autogen.sh").and_then(|_| configure(opt))
 }
 
 pub fn build(opt: &Opt) -> Result<(), Error> {
+    check_executable_bits(opt)?;
     make(opt)
         .or_else(|_| configure(opt))
         .or_else(|_| autogen(opt))
