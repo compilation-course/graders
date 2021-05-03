@@ -1,4 +1,4 @@
-#! /bin/env python
+#! /usr/bin/env python
 #
 # Usage: reports-dumper.py config-file results-file.csv
 
@@ -27,7 +27,7 @@ def add_result(name, lab, grade, max_grade):
     p = round(1000 * grade / max_grade) / 10
     r["{} (latest %)".format(lab)] = p
     h = "{} (highest %)".format(lab)
-    r[h] = max(p, r.get(h, 0))
+    r[h] = max(p, r.get(h) or 0)
     results[name] = r
     print(name, r)
     dump_results()
