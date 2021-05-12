@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.7
         with:
           profile: minimal
           toolchain: stable
@@ -39,7 +39,7 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ matrix.toolchain }}-${{ hashFiles('Cargo.toml') }}
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.7
         name: Install Rust toolchain
         with:
           profile: minimal
@@ -70,7 +70,7 @@ jobs:
   #           ~/.cargo/git
   #           target
   #         key: ${{ runner.os }}-cargo-nightly-minimal-${{ hashFiles('Cargo.toml') }}
-  #     - uses: actions-rs/toolchain@v1
+  #     - uses: actions-rs/toolchain@v1.0.7
   #       name: Install Rust toolchain
   #       with:
   #         profile: minimal
@@ -90,7 +90,7 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.7
         with:
           profile: minimal
           toolchain: stable
@@ -107,7 +107,7 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1.0.7
         with:
           profile: minimal
           toolchain: stable
