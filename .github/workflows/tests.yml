@@ -17,7 +17,7 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1.0.3
         with:
           command: check
 
@@ -45,12 +45,12 @@ jobs:
           profile: minimal
           toolchain: ${{ matrix.toolchain }}
           override: true
-      - uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1.0.3
         name: Test in debug mode
         with:
           command: test
           args: --tests --benches
-      - uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1.0.3
         name: Test in release mode
         with:
           command: test
@@ -78,7 +78,7 @@ jobs:
   #         override: true
   #     - run: cargo update -Zminimal-versions
   #       name: Set dependencies to the minimal version allowed
-  #     - uses: actions-rs/cargo@v1
+  #     - uses: actions-rs/cargo@v1.0.3
   #       name: Test with minimal version dependencies
   #       with:
   #         command: test
@@ -96,7 +96,7 @@ jobs:
           toolchain: stable
           override: true
       - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1.0.3
         with:
           command: fmt
           args: --all -- --check
@@ -113,7 +113,7 @@ jobs:
           toolchain: stable
           override: true
       - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1.0.3
         with:
           command: clippy
           args: -- -D warnings
