@@ -14,7 +14,7 @@ RUN apt-get -y dist-upgrade
 RUN apt-get --no-install-recommends -y install \
       build-essential ca-certificates clang clang-format g++ \
       ccache autoconf automake libboost-program-options-dev \
-      flex bison valgrind llvm-dev \
+      flex bison valgrind llvm-dev libtool \
       python3-yaml python3-docopt libssl-dev \
       zlib1g-dev
 COPY --from=builder /tmp/builder/target/release/builder /
