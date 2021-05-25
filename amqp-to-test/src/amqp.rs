@@ -70,7 +70,7 @@ async fn amqp_sender(
                 ack_channel.basic_ack(delivery_tag).await?;
                 if let Some(reports_routing_key) = reports_routing_key {
                     info!(
-                        "additionnaly sending {} to queue {}",
+                        "additionaly sending {} to queue {}",
                         response.job_name, reports_routing_key
                     );
                     channel
