@@ -40,7 +40,7 @@ impl AmqpDelivery {
     }
     pub fn decode_payload<'de, T: Deserialize<'de>>(&'de self) -> Result<T, AmqpError> {
         let s = std::str::from_utf8(&self.inner.data)?;
-        Ok(serde_json::from_str::<T>(&s)?)
+        Ok(serde_json::from_str::<T>(s)?)
     }
 }
 

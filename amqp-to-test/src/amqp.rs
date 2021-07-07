@@ -94,7 +94,7 @@ pub async fn amqp_process(
     receiver_channel
         .declare_exchange_and_queue(&config.amqp)
         .await?;
-    let receiver = amqp_receiver(&receiver_channel, &config, send_request);
+    let receiver = amqp_receiver(&receiver_channel, config, send_request);
     let sender_channel = conn.create_channel().await?;
     let sender = amqp_sender(
         &sender_channel,
