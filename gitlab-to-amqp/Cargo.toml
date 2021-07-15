@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-env_logger = "0.8.2"
+env_logger = "0.9.0"
 futures = "0.3"
 git2 = "0.13.2"
 hyper-tls = "0.5"
