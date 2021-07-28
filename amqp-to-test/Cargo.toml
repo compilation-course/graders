@@ -21,9 +21,6 @@ version = "2.33.0"
 [dependencies.amqp-utils]
 path = "../amqp-utils"
 
-[dependencies.graders-utils]
-path = "../graders-utils"
-
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread", "sync"]
 version = "1.0"
