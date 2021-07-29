@@ -3,6 +3,7 @@ use futures::channel::mpsc::{Receiver, Sender};
 use futures::future;
 use futures::sink::SinkExt;
 use futures::stream::{StreamExt, TryStreamExt};
+use std::convert::TryInto;
 use std::mem;
 use std::sync::Arc;
 
@@ -13,7 +14,15 @@ async fn amqp_receiver(
     config: &Arc<Configuration>,
     send_request: Sender<AmqpRequest>,
 ) -> Result<(), AmqpError> {
-    let prefetch_count = config.tester.parallelism as u16;
+    let prefetch_count = if let Ok(p) = config.tester.parallelism.try_into() {
+        p
+    } else {
+        warn!(
+            "Value for config.tester.parallelism is too large ({}), using 1",
+            config.tester.parallelism
+        );
+        1
+    };
     channel.basic_qos(prefetch_count).await?;
     let stream = channel
         .basic_consume(&config.amqp.queue, "amqp-to-test")
@@ -84,6 +93,7 @@ async fn amqp_sender(
     Ok(())
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub async fn amqp_process(
     config: &Arc<Configuration>,
     send_request: Sender<AmqpRequest>,

@@ -5,6 +5,7 @@ use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::server::conn::AddrStream;
 use hyper::service;
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
+use std::convert::TryInto;
 use std::ffi::OsStr;
 use std::net::SocketAddr;
 use std::path::{Component, Path};
@@ -15,6 +16,8 @@ use tokio::io::AsyncReadExt;
 use crate::config::Configuration;
 use crate::gitlab::GitlabHook;
 
+#[allow(clippy::module_name_repetitions)]
+#[allow(clippy::too_many_lines)]
 pub async fn web_server(
     config: &Arc<Configuration>,
     send_hook: Sender<GitlabHook>,
@@ -73,7 +76,9 @@ pub async fn web_server(
                                     hook.desc(),
                                     hook.object_kind
                                 );
-                            } else if !hook.is_delete() {
+                            } else if hook.is_delete() {
+                                debug!("branch deletion event for {}", hook.desc());
+                            } else {
                                 trace!("received json and will pass it around: {:?}", hook);
                                 let mut send_hook = send_hook.clone();
                                 tokio::spawn(async move {
@@ -81,8 +86,6 @@ pub async fn web_server(
                                         error!("unable to send hook {:?} around: {}", hook, e);
                                     }
                                 });
-                            } else {
-                                debug!("branch deletion event for {}", hook.desc());
                             }
                             Ok::<_, failure::Error>(
                                 Response::builder()
@@ -98,7 +101,7 @@ pub async fn web_server(
                             if zip_file.is_file() {
                                 debug!("serving {:?}", path);
                                 let mut content =
-                                    Vec::with_capacity(zip_file.metadata()?.len() as usize);
+                                    Vec::with_capacity(zip_file.metadata()?.len().try_into()?);
                                 File::open(&zip_file)
                                     .await?
                                     .read_to_end(&mut content)

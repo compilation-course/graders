@@ -15,13 +15,13 @@ use zip::write::{FileOptions, ZipWriter};
 pub async fn unzip(dir: &Path, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
     if zip_file.starts_with("http://") || zip_file.starts_with("https://") {
         let downloaded_file = download_url(dir, zip_file, prefix).await?;
-        unzip_file(dir, downloaded_file.to_str().unwrap(), prefix)
+        unzip_file(dir, &downloaded_file, prefix)
     } else {
-        unzip_file(dir, zip_file, prefix)
+        unzip_file(dir, Path::new(zip_file), prefix)
     }
 }
 
-fn unzip_file(dir: &Path, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
+fn unzip_file(dir: &Path, zip_file: &Path, prefix: &str) -> Result<PathBuf, failure::Error> {
     let with_slash = format!("{}/", prefix);
     let reader = File::open(zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;

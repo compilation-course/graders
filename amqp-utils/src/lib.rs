@@ -1,3 +1,5 @@
+#![allow(clippy::missing_errors_doc)]
+
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]

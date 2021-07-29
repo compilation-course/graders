@@ -84,7 +84,7 @@ fn configure(opt: &Opt) -> Result<(), Error> {
 
 fn check_executable_bits(opt: &Opt) -> Result<(), Error> {
     for &p in &["configure", "autogen.sh"] {
-        let path = [&opt.src, p].iter().cloned().collect::<PathBuf>();
+        let path = [&opt.src, p].iter().copied().collect::<PathBuf>();
         if path.exists() && !path.is_executable() {
             bail!(
                 "Some files (e.g, {}) should be executable, but the executable bit is not set",

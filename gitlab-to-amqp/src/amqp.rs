@@ -57,12 +57,13 @@ async fn amqp_receiver(
             warn!(
                 "terminating listening onto the {} queue",
                 gitlab::RESULT_QUEUE
-            )
+            );
         })
         .await?;
     Ok(())
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub async fn amqp_process(
     config: &Arc<Configuration>,
     receive_request: Receiver<AmqpRequest>,
@@ -74,7 +75,7 @@ pub async fn amqp_process(
     let config = config.clone();
     let publisher = {
         let channel = conn.create_channel().await?;
-        let _queue = channel.declare_exchange_and_queue(&config.amqp).await?;
+        channel.declare_exchange_and_queue(&config.amqp).await?;
         amqp_publisher(channel, &config, receive_request)
     };
     let receiver = {
