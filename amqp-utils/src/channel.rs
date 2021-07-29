@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 use crate::{AmqpConfiguration, AmqpDelivery, AmqpError};
 use futures::future::TryFutureExt;
 use futures::stream::{Stream, TryStreamExt};
@@ -26,7 +28,7 @@ impl AmqpChannel {
                 ExchangeKind::Direct,
                 ExchangeDeclareOptions {
                     durable: true,
-                    ..Default::default()
+                    ..ExchangeDeclareOptions::default()
                 },
                 FieldTable::default(),
             )
@@ -57,6 +59,12 @@ impl AmqpChannel {
         Ok(())
     }
 
+    /// Publish data
+    ///
+    /// # Panics
+    ///
+    /// Serialization can fail if `T`'s implementation of `Serialize` decides to
+    /// fail, or if `T` contains a map with non-string keys.
     pub async fn basic_publish<T>(
         &self,
         exchange: &str,
@@ -98,7 +106,7 @@ impl AmqpChannel {
                 queue_name,
                 QueueDeclareOptions {
                     durable: true,
-                    ..Default::default()
+                    ..QueueDeclareOptions::default()
                 },
                 FieldTable::default(),
             )

@@ -14,6 +14,7 @@ use crate::config;
 #[fail(display = "Execution error: {}", _0)]
 pub struct ExecutionError(String);
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Deserialize)]
 pub struct TesterConfiguration {
     pub docker_image: String,

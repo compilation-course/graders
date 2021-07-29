@@ -1,4 +1,4 @@
-use crate::errors::*;
+use crate::errors::AmqpError;
 use crate::AmqpChannel;
 use futures::future::TryFutureExt;
 use lapin::{Connection, ConnectionProperties};
@@ -35,6 +35,7 @@ pub struct AmqpDelivery {
 }
 
 impl AmqpDelivery {
+    #[must_use]
     pub fn delivery_tag(&self) -> u64 {
         self.inner.delivery_tag
     }

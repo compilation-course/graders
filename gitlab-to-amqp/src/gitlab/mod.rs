@@ -1,3 +1,5 @@
+#![allow(clippy::module_name_repetitions)]
+
 pub mod api;
 
 use self::api::State;
@@ -137,13 +139,7 @@ async fn package(
     for lab in config.labs.iter().filter(|l| l.is_enabled()).cloned() {
         let path = root.join(&lab.base).join(&lab.dir);
         trace!("looking for witness {:?} in path {:?}", lab.witness, path);
-        if path.is_dir()
-            && lab
-                .witness
-                .clone()
-                .map(|w| path.join(w).is_file())
-                .unwrap_or(true)
-        {
+        if path.is_dir() && lab.witness.clone().map_or(true, |w| path.join(w).is_file()) {
             trace!("publishing initial {} status for {}", lab.name, hook.desc());
             match poster::post(api::post_status(
                 &config.gitlab,

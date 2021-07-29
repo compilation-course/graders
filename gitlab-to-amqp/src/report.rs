@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use amqp_utils::AmqpResponse;
 use failure::Error;
 use gitlab::api::{self, State};
@@ -33,16 +35,16 @@ pub struct Test {
 }
 
 fn signal_to_explanation(signal: u32) -> String {
-    match signal as i32 {
-        libc::SIGILL => String::from("illegal instruction"),
-        libc::SIGABRT => String::from("abort, possibly because of a failed assertion"),
-        libc::SIGFPE => String::from("arithmetic exception"),
-        libc::SIGKILL => String::from(
+    match signal.try_into() {
+        Ok(libc::SIGILL) => String::from("illegal instruction"),
+        Ok(libc::SIGABRT) => String::from("abort, possibly because of a failed assertion"),
+        Ok(libc::SIGFPE) => String::from("arithmetic exception"),
+        Ok(libc::SIGKILL) => String::from(
             "program killed, possibly because of an infinite loop or memory exhaustion",
         ),
-        libc::SIGBUS => String::from("bus error"),
-        libc::SIGSEGV => String::from("segmentation fault"),
-        s => format!("crash (signal {})", s),
+        Ok(libc::SIGBUS) => String::from("bus error"),
+        Ok(libc::SIGSEGV) => String::from("segmentation fault"),
+        _ => format!("crash (signal {})", signal),
     }
 }
 
@@ -71,7 +73,9 @@ There has been an error during the test for {}:
         .iter()
         .filter(|group| group.grade != group.max_grade)
         .map(|group| {
-            let tests = if group.grade != 0 {
+            let tests = if group.grade == 0 {
+                String::new()
+            } else {
                 let mut explanation = "Failing tests:\n\n".to_owned();
                 explanation.push_str(
                     &group
@@ -82,22 +86,21 @@ There has been an error during the test for {}:
                             format!(
                                 "- {}{}{}",
                                 &test.description,
-                                if test.coefficient != 1 {
-                                    format!(" (coefficient {})", test.coefficient)
-                                } else {
+                                if test.coefficient == 1 {
                                     "".to_owned()
+                                } else {
+                                    format!(" (coefficient {})", test.coefficient)
                                 },
-                                test.signal
-                                    .map(|s| format!(" [{}]", signal_to_explanation(s)))
-                                    .unwrap_or_else(|| "".to_owned()),
+                                test.signal.map_or_else(
+                                    || "".to_owned(),
+                                    |s| format!(" [{}]", signal_to_explanation(s))
+                                )
                             )
                         })
                         .collect::<Vec<_>>()
                         .join("\n"),
                 );
                 explanation
-            } else {
-                String::new()
             };
             format!(
                 "### {} ({})\n\n{}\n",
