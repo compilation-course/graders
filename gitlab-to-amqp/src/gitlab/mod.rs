@@ -110,7 +110,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error
         repo.checkout_tree(
             &rev,
             Some(
-                &mut CheckoutBuilder::new()
+                CheckoutBuilder::new()
                     .force()
                     .remove_untracked(true)
                     .remove_ignored(true),
