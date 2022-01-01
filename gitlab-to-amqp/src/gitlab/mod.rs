@@ -99,7 +99,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error
     );
     let repo = RepoBuilder::new()
         .fetch_options(fetch_options)
-        .clone(&hook.url().to_string(), dir)?;
+        .clone(hook.url().as_ref(), dir)?;
     {
         let head = repo.head()?;
         trace!("current head: {}", head.shorthand().unwrap_or("<unknown>"));

@@ -75,7 +75,7 @@ async fn download_url(dir: &Path, url: &str, prefix: &str) -> Result<PathBuf, fa
 pub fn zip_recursive(dir: &Path, top_level: &Path, zip_file: &Path) -> Result<(), io::Error> {
     let writer = File::create(zip_file)?;
     let mut zip = ZipWriter::new(writer);
-    add_to_zip(&mut zip, &dir.to_owned(), &Path::new(top_level).to_owned())
+    add_to_zip(&mut zip, dir, Path::new(top_level))
 }
 
 fn add_to_zip(

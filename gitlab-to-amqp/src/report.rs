@@ -69,7 +69,7 @@ There has been an error during the test for {}:
     }
     let groups = report
         .groups
-        .unwrap_or_else(Vec::new)
+        .unwrap_or_default()
         .iter()
         .filter(|group| group.grade != group.max_grade)
         .map(|group| {

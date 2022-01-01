@@ -51,15 +51,15 @@ async fn execute(
     let env = config
         .env
         .clone()
-        .unwrap_or_else(BTreeMap::new)
+        .unwrap_or_default()
         .get(&request.lab)
         .cloned()
-        .unwrap_or_else(BTreeMap::new)
+        .unwrap_or_default()
         .iter()
         .flat_map(|(k, v)| vec!["-e".to_owned(), format!("{}={}", k, v)])
         .collect::<Vec<_>>();
     let docker_image = config.docker_image.clone();
-    let extra_args = config.extra_args.clone().unwrap_or_else(Vec::new);
+    let extra_args = config.extra_args.clone().unwrap_or_default();
     let _permit = cpu_access.acquire().await;
     tokio::task::spawn_blocking(move || {
         info!("starting docker command for {}", request.job_name);
