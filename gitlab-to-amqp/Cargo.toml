@@ -21,8 +21,8 @@ pin-utils = "0.1.0-alpha.4"
 libc = "0.2.81"
 
 [dependencies.clap]
-features = ["yaml"]
-version = "2.33.0"
+features = ["cargo"]
+version = "3.0.0"
 
 [dependencies.amqp-utils]
 path = "../amqp-utils"

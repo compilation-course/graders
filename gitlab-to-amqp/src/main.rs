@@ -10,7 +10,7 @@ mod poster;
 mod report;
 mod web;
 
-use clap::{load_yaml, App};
+use clap::{app_from_crate, arg};
 use config::Configuration;
 use failure::Error;
 use futures::channel::mpsc;
@@ -20,8 +20,9 @@ use std::sync::Arc;
 use tokio::sync::Semaphore;
 
 fn configuration() -> Result<Configuration, Error> {
-    let yaml = load_yaml!("cli.yml");
-    let matches = App::from_yaml(yaml).get_matches();
+    let matches = app_from_crate!()
+        .arg(arg!(-c --config <FILE> "Configuration file containing credentials"))
+        .get_matches();
     let config = config::load_configuration(matches.value_of("config").unwrap())?;
     config::setup_dirs(&config)?;
     Ok(config)

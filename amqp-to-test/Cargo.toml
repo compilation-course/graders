@@ -15,8 +15,8 @@ failure = "0.1.6"
 failure_derive = "0.1.6"
 
 [dependencies.clap]
-features = ["yaml"]
-version = "2.33.0"
+features = ["cargo"]
+version = "3.0.0"
 
 [dependencies.amqp-utils]
 path = "../amqp-utils"
