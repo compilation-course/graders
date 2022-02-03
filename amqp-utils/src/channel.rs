@@ -79,7 +79,7 @@ impl AmqpChannel {
                 exchange,
                 routing_key,
                 BasicPublishOptions::default(),
-                serde_json::to_string(data).unwrap().as_bytes().to_vec(),
+                serde_json::to_string(data).unwrap().as_bytes(),
                 BasicProperties::default(),
             )
             .await?;
@@ -129,7 +129,7 @@ impl AmqpChannel {
             )
             .await?;
         Ok(consumer
-            .map_ok(|(_channel, delivery)| AmqpDelivery { inner: delivery })
+            .map_ok(|delivery| AmqpDelivery { inner: delivery })
             .map_err(AmqpError::from))
     }
 }
