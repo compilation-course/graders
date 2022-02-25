@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 env_logger = "0.9.0"
 futures = "0.3"
-git2 = "0.13.2"
+git2 = "0.14.0"
 hyper-tls = "0.5"
 log = "0.4.6"
 mktemp = "0.4.0"
