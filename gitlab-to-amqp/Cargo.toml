@@ -22,7 +22,7 @@ libc = "0.2.132"
 
 [dependencies.clap]
 features = ["cargo"]
-version = "3.2.22"
+version = "4.0.10"
 
 [dependencies.amqp-utils]
 path = "../amqp-utils"
