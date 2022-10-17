@@ -35,7 +35,7 @@ async fn execute(
     cpu_access: Arc<Semaphore>,
 ) -> Result<String, Error> {
     let test_file = match config.test_files.get(&request.lab) {
-        Some(file) => config.dir_in_docker.join(&file),
+        Some(file) => config.dir_in_docker.join(file),
         None => {
             bail!(
                 "unable to find configuration for lab {} for {}",
