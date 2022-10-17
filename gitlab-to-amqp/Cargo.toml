@@ -2,7 +2,7 @@
 authors = ["Samuel Tardieu <sam@rfc1149.net>"]
 name = "gitlab-to-amqp"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 env_logger = "0.9.0"
