@@ -5,7 +5,7 @@ use hyper_tls::HttpsConnector;
 pub async fn post(request: Request<String>) -> Result<StatusCode, hyper::Error> {
     let https = HttpsConnector::new();
     let client = Client::builder().build::<_, Body>(https);
-    trace!(
+    log::trace!(
         "preparing to post request to {} ({})",
         request.uri(),
         request.method()
@@ -16,11 +16,11 @@ pub async fn post(request: Request<String>) -> Result<StatusCode, hyper::Error> 
     client
         .request(request)
         .map_ok(move |r| {
-            trace!("request to {} ({}) returned {}", uri, method, r.status());
+            log::trace!("request to {} ({}) returned {}", uri, method, r.status());
             r.status()
         })
         .inspect_err(|e| {
-            error!("could not post request: {}", e);
+            log::error!("could not post request: {}", e);
         })
         .await
 }

@@ -17,7 +17,7 @@ async fn amqp_receiver(
     let prefetch_count = if let Ok(p) = config.tester.parallelism.try_into() {
         p
     } else {
-        warn!(
+        log::warn!(
             "Value for config.tester.parallelism is too large ({}), using 1",
             config.tester.parallelism
         );
@@ -39,7 +39,7 @@ async fn amqp_receiver(
         .filter(|e| future::ready(e.is_ok()));
     send_request
         .sink_map_err(|e| {
-            warn!("sink error: {}", e);
+            log::warn!("sink error: {}", e);
             AmqpError::from(e)
         })
         .send_all(&mut data)
@@ -69,18 +69,20 @@ async fn amqp_sender(
         })
         .try_for_each(
             move |(mut response, channel, ack_channel, reports_routing_key)| async move {
-                info!(
+                log::info!(
                     "sending response {} to queue {}",
-                    response.job_name, response.result_queue
+                    response.job_name,
+                    response.result_queue
                 );
                 let queue = mem::replace(&mut response.result_queue, "".to_owned());
                 let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
                 channel.basic_publish("", &queue, &response).await?;
                 ack_channel.basic_ack(delivery_tag).await?;
                 if let Some(reports_routing_key) = reports_routing_key {
-                    info!(
+                    log::info!(
                         "additionaly sending {} to queue {}",
-                        response.job_name, reports_routing_key
+                        response.job_name,
+                        reports_routing_key
                     );
                     channel
                         .basic_publish("", &reports_routing_key, &response)

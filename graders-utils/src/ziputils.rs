@@ -47,7 +47,7 @@ fn unzip_file(dir: &Path, zip_file: &Path, prefix: &str) -> Result<PathBuf, fail
         }
     }
     let dir = dir.join(prefix);
-    info!("unzipped compiler is available in {:?}", dir);
+    log::info!("unzipped compiler is available in {:?}", dir);
     Ok(dir)
 }
 
@@ -56,11 +56,11 @@ async fn download_url(dir: &Path, url: &str, prefix: &str) -> Result<PathBuf, fa
         .await
         .with_context(|e| format!("cannot retrieve {}: {}", url, e))?;
     if zip.status() != StatusCode::OK {
-        warn!("could not retrieve {}: {}", url, zip.status());
+        log::warn!("could not retrieve {}: {}", url, zip.status());
         bail!("cannot retrieve {}: {}", url, zip.status());
     }
-    let target_file = dir.join(&format!("{}.zip", prefix));
-    debug!("retrieving {} as {:?}", url, target_file);
+    let target_file = dir.join(&format!("{prefix}.zip"));
+    log::debug!("retrieving {} as {:?}", url, target_file);
     let mut target = tokio::fs::File::create(&target_file).await?;
     // TODO Use bytes_stream() and progressive write to avoid loading the whole file to memory.
     target

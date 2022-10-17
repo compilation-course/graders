@@ -11,6 +11,7 @@ use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use graders_utils::ziputils::zip_recursive;
 use mktemp::Temp;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
 use std::path::Path;
@@ -90,7 +91,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error
         .credentials(move |_, _, _| Cred::userpass_plaintext(GITLAB_USERNAME, &token_for_clone));
     let mut fetch_options = FetchOptions::new();
     fetch_options.remote_callbacks(callbacks);
-    trace!(
+    log::trace!(
         "cloning {:?} into {:?} with username {} and token {}",
         hook.url(),
         dir,
@@ -102,9 +103,9 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error
         .clone(hook.url().as_ref(), dir)?;
     {
         let head = repo.head()?;
-        trace!("current head: {}", head.shorthand().unwrap_or("<unknown>"));
+        log::trace!("current head: {}", head.shorthand().unwrap_or("<unknown>"));
     }
-    trace!("checkouting {}", hook.pushed_sha());
+    log::trace!("checkouting {}", hook.pushed_sha());
     {
         let rev = repo.revparse_single(hook.pushed_sha())?;
         repo.checkout_tree(
@@ -127,20 +128,20 @@ async fn package(
     config: &Configuration,
     hook: &GitlabHook,
 ) -> Result<Vec<(String, String, String)>, failure::Error> {
-    info!("packaging {}", hook.desc());
+    log::info!("packaging {}", hook.desc());
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
     let _repo = clone(&config.gitlab.token, hook, &root).map_err(|e| {
-        error!("error when cloning: {}", e);
+        log::error!("error when cloning: {}", e);
         e
     })?;
     let zip_dir = &Path::new(&config.package.zip_dir);
     let mut to_test = Vec::new();
     for lab in config.labs.iter().filter(|l| l.is_enabled()).cloned() {
         let path = root.join(&lab.base).join(&lab.dir);
-        trace!("looking for witness {:?} in path {:?}", lab.witness, path);
+        log::trace!("looking for witness {:?} in path {:?}", lab.witness, path);
         if path.is_dir() && lab.witness.clone().map_or(true, |w| path.join(w).is_file()) {
-            trace!("publishing initial {} status for {}", lab.name, hook.desc());
+            log::trace!("publishing initial {} status for {}", lab.name, hook.desc());
             match poster::post(api::post_status(
                 &config.gitlab,
                 hook,
@@ -152,9 +153,9 @@ async fn package(
             .await
             {
                 Ok(_) => (),
-                Err(e) => warn!("unable to post initial status: {}", e),
+                Err(e) => log::warn!("unable to post initial status: {}", e),
             };
-            trace!("packaging lab {} from {:?}", lab.name, path);
+            log::trace!("packaging lab {} from {:?}", lab.name, path);
             let zip_basename = format!("{}.zip", Uuid::new_v4());
             let zip_file = zip_dir.join(&zip_basename);
             let lab_dir = lab.dir.clone();
@@ -168,7 +169,7 @@ async fn package(
                     zip_basename,
                 )),
                 Err(e) => {
-                    error!("cannot package {:?} (lab {}): {}", hook.url(), lab.name, e);
+                    log::error!("cannot package {:?} (lab {}): {}", hook.url(), lab.name, e);
                     match poster::post(api::post_status(
                         &config.gitlab,
                         hook,
@@ -180,13 +181,13 @@ async fn package(
                     .await
                     {
                         Ok(_) => (),
-                        Err(e) => warn!("unable to post packaging error status: {}", e),
+                        Err(e) => log::warn!("unable to post packaging error status: {}", e),
                     }
                 }
             }
         }
     }
-    trace!("to test for {}: {:?}", hook.desc(), to_test);
+    log::trace!("to test for {}: {:?}", hook.desc(), to_test);
     Ok(to_test)
 }
 

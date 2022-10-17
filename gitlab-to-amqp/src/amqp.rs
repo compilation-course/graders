@@ -17,7 +17,7 @@ async fn amqp_publisher(
             let channel = channel.clone();
             let config = config.clone();
             async move {
-                info!("publishing AMQP job request {}", req.job_name);
+                log::info!("publishing AMQP job request {}", req.job_name);
                 channel
                     .basic_publish(&config.amqp.exchange, &config.amqp.routing_key, &req)
                     .await
@@ -34,7 +34,7 @@ async fn amqp_receiver(
     let stream = channel
         .basic_consume(gitlab::RESULT_QUEUE, "gitlab-to-amqp")
         .await?;
-    info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
+    log::info!("listening onto the {} queue", gitlab::RESULT_QUEUE);
     let data = stream
         .err_into()
         .and_then(|msg| {
@@ -49,12 +49,12 @@ async fn amqp_receiver(
     pin_utils::pin_mut!(data);
     send_response
         .sink_map_err(|e| {
-            warn!("sink error: {}", e);
+            log::warn!("sink error: {}", e);
             AmqpError::from(e)
         })
         .send_all(&mut data)
         .inspect(|_| {
-            warn!(
+            log::warn!(
                 "terminating listening onto the {} queue",
                 gitlab::RESULT_QUEUE
             );

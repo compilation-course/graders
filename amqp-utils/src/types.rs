@@ -2,7 +2,7 @@ use crate::errors::AmqpError;
 use crate::AmqpChannel;
 use futures::future::TryFutureExt;
 use lapin::{Connection, ConnectionProperties};
-use serde::de::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::rc::Rc;
 
 pub struct AmqpConnection {
@@ -16,7 +16,7 @@ impl AmqpConnection {
         let dest = format!("amqp://{}:{}/%2f", config.host, config.port);
         let connection = Connection::connect(&dest, ConnectionProperties::default())
             .inspect_err(|e| {
-                warn!("error when connecting AMQP client to {}: {}", dest, e);
+                log::warn!("error when connecting AMQP client to {}: {}", dest, e);
             })
             .await?;
         Ok(AmqpConnection { inner: connection })

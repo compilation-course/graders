@@ -1,15 +1,7 @@
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-
 mod commands;
 mod outputs;
 
+use failure::Fail;
 use graders_utils::ziputils::unzip;
 use mktemp::Temp;
 use std::path::{Path, PathBuf};
@@ -70,7 +62,7 @@ async fn main() {
         .to_str()
         .expect("non-utf8 character in top-level directory");
     if !Path::new(&opt.src).is_dir() {
-        info!("Unzipping {:?}", opt.src);
+        log::info!("Unzipping {:?}", opt.src);
         match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir).await {
             Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
             Err(e) => {
