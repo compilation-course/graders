@@ -10,7 +10,7 @@ mod poster;
 mod report;
 mod web;
 
-use clap::{app_from_crate, arg};
+use clap::{arg, command};
 use config::Configuration;
 use failure::Error;
 use futures::channel::mpsc;
@@ -20,10 +20,10 @@ use std::sync::Arc;
 use tokio::sync::Semaphore;
 
 fn configuration() -> Result<Configuration, Error> {
-    let matches = app_from_crate!()
+    let matches = command!()
         .arg(arg!(-c --config <FILE> "Configuration file containing credentials"))
         .get_matches();
-    let config = config::load_configuration(matches.value_of("config").unwrap())?;
+    let config = config::load_configuration(matches.get_one::<String>("config").unwrap())?;
     config::setup_dirs(&config)?;
     Ok(config)
 }

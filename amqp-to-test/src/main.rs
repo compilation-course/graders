@@ -9,7 +9,7 @@ mod amqp;
 mod config;
 mod tester;
 
-use clap::{app_from_crate, arg};
+use clap::{arg, command};
 use config::Configuration;
 use failure::Error;
 use futures::channel::mpsc;
@@ -18,10 +18,10 @@ use futures::{FutureExt, TryFutureExt};
 use std::sync::Arc;
 
 fn configuration() -> Result<Configuration, Error> {
-    let matches = app_from_crate!()
+    let matches = command!()
         .arg(arg!(-c --config <FILE> "Configuration file containing credentials"))
         .get_matches();
-    config::load_configuration(matches.value_of("config").unwrap())
+    config::load_configuration(matches.get_one::<String>("config").unwrap())
 }
 
 #[tokio::main]
