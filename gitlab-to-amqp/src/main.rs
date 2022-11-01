@@ -1,8 +1,3 @@
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-
 mod amqp;
 mod config;
 mod gitlab;
@@ -30,7 +25,7 @@ fn configuration() -> Result<Configuration, Error> {
 
 async fn run() -> Result<(), Error> {
     let config = Arc::new(configuration()?);
-    info!(
+    log::info!(
         "configured for labs {:?}",
         config
             .labs
@@ -51,20 +46,20 @@ async fn run() -> Result<(), Error> {
         .try_for_each_concurrent(None, |response| {
             let cloned_config = config.clone();
             async move {
-                trace!("Received reponse: {:?}", response);
+                log::trace!("Received reponse: {:?}", response);
                 match report::response_to_post(&cloned_config, &response) {
                     Ok(rqs) => {
                         stream::iter(rqs)
                             .for_each_concurrent(None, |rq| async {
                                 if let Err(e) = poster::post(rq).await {
-                                    warn!("unable to post response: {}", e);
+                                    log::warn!("unable to post response: {}", e);
                                 }
                             })
                             .await;
                         Ok(())
                     }
                     Err(e) => {
-                        error!("unable to build response: {}", e);
+                        log::error!("unable to build response: {}", e);
                         Err(e)
                     }
                 }
@@ -78,9 +73,9 @@ async fn run() -> Result<(), Error> {
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    info!("starting");
+    log::info!("starting");
     if let Err(e) = run().await {
-        error!("exiting because of {}", e);
+        log::error!("exiting because of {}", e);
         process::exit(1);
     }
 }

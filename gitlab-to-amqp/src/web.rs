@@ -24,12 +24,13 @@ pub async fn web_server(
 ) -> Result<(), failure::Error> {
     let config = config.clone();
     let addr = SocketAddr::new(config.server.ip, config.server.port);
-    info!(
+    log::info!(
         "will listen on {:?} with base URL of {}",
-        addr, config.server.base_url
+        addr,
+        config.server.base_url
     );
     let make_svc = service::make_service_fn(|socket: &AddrStream| {
-        debug!("connection from {:?}", socket.remote_addr());
+        log::debug!("connection from {:?}", socket.remote_addr());
         let send_hook = send_hook.clone();
         let config = config.clone();
         async move {
@@ -38,13 +39,13 @@ pub async fn web_server(
                 let config = config.clone();
                 async move {
                     let (head, body) = req.into_parts();
-                    trace!("got {} {}", head.method, head.uri.path());
+                    log::trace!("got {} {}", head.method, head.uri.path());
                     match (head.method, head.uri.path()) {
                         (Method::POST, "/push") => {
                             let body = hyper::body::to_bytes(body).await?;
                             let hook =
                                 serde_json::from_slice::<GitlabHook>(&body).with_context(|e| {
-                                    error!("error when decoding body: {}", e);
+                                    log::error!("error when decoding body: {}", e);
                                     format_err!("error when decoding body: {}", e)
                                 })?;
                             if let Some(secret_token) = config.gitlab.secret_token.clone() {
@@ -54,7 +55,7 @@ pub async fn web_server(
                                     .and_then(|h| h.to_str().ok())
                                 {
                                     if secret_token != from_request {
-                                        error!("incorrect secret token sent to the hook");
+                                        log::error!("incorrect secret token sent to the hook");
                                         return Ok::<_, failure::Error>(
                                             Response::builder()
                                                 .status(StatusCode::FORBIDDEN)
@@ -62,7 +63,7 @@ pub async fn web_server(
                                         );
                                     }
                                 } else {
-                                    error!("missing secret token with hook");
+                                    log::error!("missing secret token with hook");
                                     return Ok::<_, failure::Error>(
                                         Response::builder()
                                             .status(StatusCode::FORBIDDEN)
@@ -71,19 +72,19 @@ pub async fn web_server(
                                 }
                             }
                             if hook.object_kind != "push" {
-                                trace!(
+                                log::trace!(
                                     "received unknown object kind for {}: {}",
                                     hook.desc(),
                                     hook.object_kind
                                 );
                             } else if hook.is_delete() {
-                                debug!("branch deletion event for {}", hook.desc());
+                                log::debug!("branch deletion event for {}", hook.desc());
                             } else {
-                                trace!("received json and will pass it around: {:?}", hook);
+                                log::trace!("received json and will pass it around: {:?}", hook);
                                 let mut send_hook = send_hook.clone();
                                 tokio::spawn(async move {
                                     if let Err(e) = send_hook.send(hook.clone()).await {
-                                        error!("unable to send hook {:?} around: {}", hook, e);
+                                        log::error!("unable to send hook {:?} around: {}", hook, e);
                                     }
                                 });
                             }
@@ -99,7 +100,7 @@ pub async fn web_server(
                             let zip_file =
                                 zip_dir.join(Path::new(path).strip_prefix("/zips/").unwrap());
                             if zip_file.is_file() {
-                                debug!("serving {:?}", path);
+                                log::debug!("serving {:?}", path);
                                 let mut content =
                                     Vec::with_capacity(zip_file.metadata()?.len().try_into()?);
                                 File::open(&zip_file)
@@ -114,12 +115,12 @@ pub async fn web_server(
                                     .header(CONTENT_LENGTH, content.len())
                                     .body(Body::from(content))?)
                             } else {
-                                warn!("unable to serve {:?}", path);
+                                log::warn!("unable to serve {:?}", path);
                                 Ok(not_found())
                             }
                         }
                         (method, path) => {
-                            info!("unknown incoming request {:?} for {}", method, path);
+                            log::info!("unknown incoming request {:?} for {}", method, path);
                             Ok(not_found())
                         }
                     }

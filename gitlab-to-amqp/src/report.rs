@@ -4,6 +4,7 @@ use amqp_utils::AmqpResponse;
 use failure::Error;
 use gitlab::api::{self, State};
 use hyper::Request;
+use serde::Deserialize;
 
 use crate::config::Configuration;
 use crate::gitlab;
@@ -51,7 +52,7 @@ fn signal_to_explanation(signal: u32) -> String {
 fn yaml_to_markdown(lab: &str, yaml: &str) -> Result<(String, usize, usize), Error> {
     let report: Report = serde_yaml::from_str(yaml)?;
     if let Some(explanation) = report.explanation {
-        warn!("problem during handling of {}: {}", lab, explanation);
+        log::warn!("problem during handling of {}: {}", lab, explanation);
         return Ok((
             format!(
                 r#"## Error
@@ -130,8 +131,8 @@ pub fn response_to_post(
     let (report, grade, max_grade) = yaml_to_markdown(&response.lab, &response.yaml_result)?;
     let (hook, zip) = gitlab::from_opaque(&response.opaque)?;
     match gitlab::remove_zip_file(config, &zip) {
-        Ok(_) => trace!("removed zip file {}", zip),
-        Err(e) => warn!("could not remove zip file {}: {}", zip, e),
+        Ok(_) => log::trace!("removed zip file {}", zip),
+        Err(e) => log::warn!("could not remove zip file {}: {}", zip, e),
     }
     let state = if grade == max_grade {
         State::Success
@@ -147,15 +148,17 @@ pub fn response_to_post(
         Some(&format!("grade: {}/{}", grade, max_grade)),
     );
     Ok(if state == State::Success {
-        info!(
+        log::info!(
             "tests for {} are a success, generating status only",
             &response.job_name
         );
         vec![status]
     } else {
-        info!(
+        log::info!(
             "tests for {} are a failure ({}/{}), generating status and comment",
-            &response.job_name, grade, max_grade
+            &response.job_name,
+            grade,
+            max_grade
         );
         let comment = api::post_comment(&config.gitlab, &hook, &report);
         vec![status, comment]

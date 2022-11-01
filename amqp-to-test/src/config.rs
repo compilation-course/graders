@@ -1,5 +1,6 @@
 use amqp_utils::AmqpConfiguration;
 use failure::Error;
+use serde::Deserialize;
 use std::fs::File;
 use std::io::Read;
 

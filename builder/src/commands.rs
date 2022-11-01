@@ -1,5 +1,5 @@
 use super::Opt;
-use failure::{Error, ResultExt};
+use failure::{bail, format_err, Error, Fail, ResultExt};
 use is_executable::IsExecutable;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -9,9 +9,11 @@ use std::process::{Command, Stdio};
 pub struct RunError(String);
 
 pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, Error> {
-    info!(
+    log::info!(
         "executing {:?} with test source {:?} on executable {:?}",
-        opt.test_command, opt.test_file, dtiger
+        opt.test_command,
+        opt.test_file,
+        dtiger
     );
     let mut output = Command::new(&opt.test_command);
     if opt.verbose {
@@ -31,7 +33,7 @@ pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, Error> {
     if output.status.code() == Some(0) {
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
-        warn!(
+        log::warn!(
             "received status code {:?} when running tests",
             output.status.code()
         );
@@ -44,7 +46,7 @@ fn exec(opt: &Opt, command: &str) -> Result<(), Error> {
 }
 
 fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), Error> {
-    info!("executing {} with args {:?}", command, args);
+    log::info!("executing {} with args {:?}", command, args);
     let output = Command::new(command)
         .args(args)
         .current_dir(&opt.src)
@@ -52,7 +54,7 @@ fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), Error> {
         .stdout(Stdio::null())
         .output()
         .context(format!("cannot build program in {:?}", opt.src))?;
-    trace!(
+    log::trace!(
         "command {} with args {:?} terminated with status {:?}",
         command,
         args,

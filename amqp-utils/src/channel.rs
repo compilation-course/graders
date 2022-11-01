@@ -33,12 +33,12 @@ impl AmqpChannel {
                 FieldTable::default(),
             )
             .inspect_err(|e| {
-                error!("cannot declare exchange {}: {}", config.exchange, e);
+                log::error!("cannot declare exchange {}: {}", config.exchange, e);
             })
             .await?;
         self.queue_declare_durable(&config.queue)
             .inspect_err(|e| {
-                error!("could not declare queue {}: {}", &config.queue, e);
+                log::error!("could not declare queue {}: {}", &config.queue, e);
             })
             .await?;
         self.inner
@@ -50,9 +50,12 @@ impl AmqpChannel {
                 FieldTable::default(),
             )
             .inspect_err(move |e| {
-                error!(
+                log::error!(
                     "could not bind queue {} to exchange {} using routing key {}: {}",
-                    config.queue, config.exchange, config.routing_key, e
+                    config.queue,
+                    config.exchange,
+                    config.routing_key,
+                    e
                 );
             })
             .await?;

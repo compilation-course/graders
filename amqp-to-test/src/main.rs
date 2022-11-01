@@ -1,10 +1,3 @@
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate serde_derive;
-
 mod amqp;
 mod config;
 mod tester;
@@ -27,7 +20,7 @@ fn configuration() -> Result<Configuration, Error> {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     env_logger::init();
-    info!("starting");
+    log::info!("starting");
     let config = Arc::new(configuration()?);
     let (send_request, receive_request) = mpsc::channel(16);
     let (send_response, receive_response) = mpsc::channel(16);

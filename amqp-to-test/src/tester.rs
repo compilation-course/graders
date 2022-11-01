@@ -1,7 +1,8 @@
 use amqp_utils::{AmqpRequest, AmqpResponse};
-use failure::{bail, Error, ResultExt};
+use failure::{bail, Error, Fail, ResultExt};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{SinkExt, StreamExt, TryFutureExt};
+use serde::{Deserialize, Serialize};
 use std::collections::btree_map::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -62,7 +63,7 @@ async fn execute(
     let extra_args = config.extra_args.clone().unwrap_or_default();
     let _permit = cpu_access.acquire().await;
     tokio::task::spawn_blocking(move || {
-        info!("starting docker command for {}", request.job_name);
+        log::info!("starting docker command for {}", request.job_name);
         let mut command = Command::new("docker");
         let command = command
             .arg("run")
@@ -80,19 +81,19 @@ async fn execute(
             .arg(&request.dir)
             .arg(&program)
             .arg(&test_file);
-        trace!("docker command for {}: {:?}", request.job_name, command);
+        log::trace!("docker command for {}: {:?}", request.job_name, command);
         let output = command
             .stdin(Stdio::null())
             .output()
             .context("cannot run command")?;
         if output.status.code() == Some(0) {
-            info!(
+            log::info!(
                 "docker command for {} finished succesfully",
                 request.job_name
             );
             Ok(String::from_utf8_lossy(&output.stdout).to_string())
         } else {
-            warn!(
+            log::warn!(
                 "docker command for {} finished with an error",
                 request.job_name
             );
@@ -152,7 +153,7 @@ pub async fn start_executor(
             let cpu_access = cpu_access.clone();
             let send_response = send_response.clone();
             async move {
-                debug!("received request {:?}", request);
+                log::debug!("received request {:?}", request);
                 let mut send_response = send_response.clone();
                 let config = config.clone();
                 tokio::spawn(async move {
@@ -160,7 +161,7 @@ pub async fn start_executor(
                     send_response
                         .send(response)
                         .inspect_err(|e| {
-                            error!("unable to send AMQPResponse to queue: {}", e);
+                            log::error!("unable to send AMQPResponse to queue: {}", e);
                         })
                         .await
                 });
