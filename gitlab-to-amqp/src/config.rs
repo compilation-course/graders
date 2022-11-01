@@ -1,5 +1,4 @@
 use amqp_utils::AmqpConfiguration;
-use failure::Error;
 use serde::Deserialize;
 use std::fs::{self, File};
 use std::io::Read;
@@ -51,14 +50,14 @@ impl LabConfiguration {
     }
 }
 
-pub fn load_configuration(file: &str) -> Result<Configuration, Error> {
+pub fn load_configuration(file: &str) -> eyre::Result<Configuration> {
     let mut f = File::open(file)?;
     let mut content = Vec::new();
     f.read_to_end(&mut content)?;
     Ok(serde_yaml::from_slice(&content)?)
 }
 
-pub fn setup_dirs(config: &Configuration) -> Result<(), Error> {
+pub fn setup_dirs(config: &Configuration) -> eyre::Result<()> {
     let zip_dir = Path::new(&config.package.zip_dir);
     if !zip_dir.is_dir() {
         fs::create_dir(zip_dir)?;

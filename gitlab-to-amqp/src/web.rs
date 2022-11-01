@@ -1,4 +1,4 @@
-use failure::{format_err, ResultExt};
+use eyre::Context;
 use futures::channel::mpsc::Sender;
 use futures::SinkExt;
 use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
@@ -21,7 +21,7 @@ use crate::gitlab::GitlabHook;
 pub async fn web_server(
     config: &Arc<Configuration>,
     send_hook: Sender<GitlabHook>,
-) -> Result<(), failure::Error> {
+) -> eyre::Result<()> {
     let config = config.clone();
     let addr = SocketAddr::new(config.server.ip, config.server.port);
     log::info!(
@@ -34,7 +34,7 @@ pub async fn web_server(
         let send_hook = send_hook.clone();
         let config = config.clone();
         async move {
-            Ok::<_, failure::Error>(service::service_fn(move |req: Request<Body>| {
+            Ok::<_, eyre::Report>(service::service_fn(move |req: Request<Body>| {
                 let send_hook = send_hook.clone();
                 let config = config.clone();
                 async move {
@@ -43,11 +43,12 @@ pub async fn web_server(
                     match (head.method, head.uri.path()) {
                         (Method::POST, "/push") => {
                             let body = hyper::body::to_bytes(body).await?;
-                            let hook =
-                                serde_json::from_slice::<GitlabHook>(&body).with_context(|e| {
+                            let hook = serde_json::from_slice::<GitlabHook>(&body)
+                                .map_err(|e| {
                                     log::error!("error when decoding body: {}", e);
-                                    format_err!("error when decoding body: {}", e)
-                                })?;
+                                    e
+                                })
+                                .with_context(|| "error when decoding body")?;
                             if let Some(secret_token) = config.gitlab.secret_token.clone() {
                                 if let Some(from_request) = head
                                     .headers
@@ -56,7 +57,7 @@ pub async fn web_server(
                                 {
                                     if secret_token != from_request {
                                         log::error!("incorrect secret token sent to the hook");
-                                        return Ok::<_, failure::Error>(
+                                        return Ok::<_, eyre::Report>(
                                             Response::builder()
                                                 .status(StatusCode::FORBIDDEN)
                                                 .body(Body::from("incorrect secret token"))?,
@@ -64,7 +65,7 @@ pub async fn web_server(
                                     }
                                 } else {
                                     log::error!("missing secret token with hook");
-                                    return Ok::<_, failure::Error>(
+                                    return Ok::<_, eyre::Report>(
                                         Response::builder()
                                             .status(StatusCode::FORBIDDEN)
                                             .body(Body::from("missing secret token"))?,
@@ -88,7 +89,7 @@ pub async fn web_server(
                                     }
                                 });
                             }
-                            Ok::<_, failure::Error>(
+                            Ok::<_, eyre::Report>(
                                 Response::builder()
                                     .status(StatusCode::NO_CONTENT)
                                     .body(Body::empty())?,

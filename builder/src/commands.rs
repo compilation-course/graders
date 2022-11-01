@@ -1,14 +1,21 @@
 use super::Opt;
-use failure::{bail, format_err, Error, Fail, ResultExt};
 use is_executable::IsExecutable;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-#[derive(Fail, Debug)]
-#[fail(display = "fatal error when running test: {}", _0)]
-pub struct RunError(String);
+#[derive(thiserror::Error, Debug)]
+pub enum RunError {
+    #[error("cannot build program in `{1}`")]
+    CannotBuildProgram(#[source] std::io::Error, String),
+    #[error("cannot run tests {0:?} -y {1:?}")]
+    CannotRunTests(#[source] std::io::Error, PathBuf, PathBuf),
+    #[error("some files (e.g, `{0}`) should be executable, but the executable bit is not set")]
+    NotExecutable(PathBuf),
+    #[error("{0}")]
+    Other(String),
+}
 
-pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, Error> {
+pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, RunError> {
     log::info!(
         "executing {:?} with test source {:?} on executable {:?}",
         opt.test_command,
@@ -26,10 +33,9 @@ pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, Error> {
         .env("DTIGER", dtiger)
         .stdin(Stdio::null())
         .output()
-        .context(format!(
-            "cannot run tests {:?} -y {:?}",
-            opt.test_command, opt.test_file
-        ))?;
+        .map_err(|e| {
+            RunError::CannotRunTests(e, opt.test_command.clone(), opt.test_file.clone())
+        })?;
     if output.status.code() == Some(0) {
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
@@ -37,15 +43,17 @@ pub fn run_test(opt: &Opt, dtiger: &Path) -> Result<String, Error> {
             "received status code {:?} when running tests",
             output.status.code()
         );
-        Err(RunError(String::from_utf8_lossy(&output.stderr).to_string()).into())
+        Err(RunError::Other(
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        ))
     }
 }
 
-fn exec(opt: &Opt, command: &str) -> Result<(), Error> {
+fn exec(opt: &Opt, command: &str) -> Result<(), RunError> {
     exec_args(opt, command, &[])
 }
 
-fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), Error> {
+fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), RunError> {
     log::info!("executing {} with args {:?}", command, args);
     let output = Command::new(command)
         .args(args)
@@ -53,7 +61,7 @@ fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), Error> {
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .output()
-        .context(format!("cannot build program in {:?}", opt.src))?;
+        .map_err(|e| RunError::CannotBuildProgram(e, opt.src.clone()))?;
     log::trace!(
         "command {} with args {:?} terminated with status {:?}",
         command,
@@ -63,15 +71,17 @@ fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), Error> {
     if output.status.code() == Some(0) {
         Ok(())
     } else {
-        Err(format_err!("{}", String::from_utf8_lossy(&output.stderr)))
+        Err(RunError::Other(
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        ))
     }
 }
 
-fn make(opt: &Opt) -> Result<(), Error> {
+fn make(opt: &Opt) -> Result<(), RunError> {
     exec(opt, "make")
 }
 
-fn configure(opt: &Opt) -> Result<(), Error> {
+fn configure(opt: &Opt) -> Result<(), RunError> {
     let configure = if let Some(ref d) = opt.with_llvm {
         exec_args(
             opt,
@@ -84,24 +94,21 @@ fn configure(opt: &Opt) -> Result<(), Error> {
     configure.and_then(|_| make(opt))
 }
 
-fn check_executable_bits(opt: &Opt) -> Result<(), Error> {
+fn check_executable_bits(opt: &Opt) -> Result<(), RunError> {
     for &p in &["configure", "autogen.sh"] {
         let path = [&opt.src, p].iter().copied().collect::<PathBuf>();
         if path.exists() && !path.is_executable() {
-            bail!(
-                "Some files (e.g, {}) should be executable, but the executable bit is not set",
-                p
-            );
+            return Err(RunError::NotExecutable(path));
         }
     }
     Ok(())
 }
 
-fn autogen(opt: &Opt) -> Result<(), Error> {
+fn autogen(opt: &Opt) -> Result<(), RunError> {
     exec(opt, "./autogen.sh").and_then(|_| configure(opt))
 }
 
-pub fn build(opt: &Opt) -> Result<(), Error> {
+pub fn build(opt: &Opt) -> Result<(), RunError> {
     check_executable_bits(opt)?;
     make(opt)
         .or_else(|_| configure(opt))

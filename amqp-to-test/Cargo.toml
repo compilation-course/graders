@@ -11,8 +11,9 @@ log = "0.4.17"
 serde = "1.0.145"
 serde_derive = "1.0.145"
 serde_yaml = "0.9.13"
-failure = "0.1.8"
-failure_derive = "0.1.8"
+thiserror = "1.0.37"
+eyre = "0.6.8"
+color-eyre = "0.6.2"
 
 [dependencies.clap]
 features = ["cargo"]

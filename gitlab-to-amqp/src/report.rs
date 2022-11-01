@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
 use amqp_utils::AmqpResponse;
-use failure::Error;
 use gitlab::api::{self, State};
 use hyper::Request;
 use serde::Deserialize;
@@ -49,7 +48,7 @@ fn signal_to_explanation(signal: u32) -> String {
     }
 }
 
-fn yaml_to_markdown(lab: &str, yaml: &str) -> Result<(String, usize, usize), Error> {
+fn yaml_to_markdown(lab: &str, yaml: &str) -> eyre::Result<(String, usize, usize)> {
     let report: Report = serde_yaml::from_str(yaml)?;
     if let Some(explanation) = report.explanation {
         log::warn!("problem during handling of {}: {}", lab, explanation);
@@ -127,7 +126,7 @@ There has been an error during the test for {}:
 pub fn response_to_post(
     config: &Configuration,
     response: &AmqpResponse,
-) -> Result<Vec<Request<String>>, Error> {
+) -> eyre::Result<Vec<Request<String>>> {
     let (report, grade, max_grade) = yaml_to_markdown(&response.lab, &response.yaml_result)?;
     let (hook, zip) = gitlab::from_opaque(&response.opaque)?;
     match gitlab::remove_zip_file(config, &zip) {

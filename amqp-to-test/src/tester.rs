@@ -1,5 +1,4 @@
 use amqp_utils::{AmqpRequest, AmqpResponse};
-use failure::{bail, Error, Fail, ResultExt};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{SinkExt, StreamExt, TryFutureExt};
 use serde::{Deserialize, Serialize};
@@ -11,9 +10,15 @@ use tokio::sync::Semaphore;
 
 use crate::config;
 
-#[derive(Fail, Debug)]
-#[fail(display = "Execution error: {}", _0)]
-pub struct ExecutionError(String);
+#[derive(Debug, thiserror::Error)]
+pub enum TesterError {
+    #[error("cannot run command")]
+    CannotRun(#[source] std::io::Error),
+    #[error("unable to find configuration for lab `{0}` for `{1}`")]
+    ConfigurationNotFound(String, String),
+    #[error("execution error: {0}")]
+    ExecutionError(String),
+}
 
 #[allow(clippy::module_name_repetitions)]
 #[derive(Deserialize)]
@@ -34,15 +39,14 @@ async fn execute(
     config: &TesterConfiguration,
     request: &AmqpRequest,
     cpu_access: Arc<Semaphore>,
-) -> Result<String, Error> {
+) -> Result<String, TesterError> {
     let test_file = match config.test_files.get(&request.lab) {
         Some(file) => config.dir_in_docker.join(file),
         None => {
-            bail!(
-                "unable to find configuration for lab {} for {}",
-                request.lab,
-                request.job_name
-            );
+            return Err(TesterError::ConfigurationNotFound(
+                request.lab.to_owned(),
+                request.job_name.to_owned(),
+            ));
         }
     };
     let request = request.clone();
@@ -85,7 +89,7 @@ async fn execute(
         let output = command
             .stdin(Stdio::null())
             .output()
-            .context("cannot run command")?;
+            .map_err(TesterError::CannotRun)?;
         if output.status.code() == Some(0) {
             log::info!(
                 "docker command for {} finished succesfully",
@@ -97,10 +101,13 @@ async fn execute(
                 "docker command for {} finished with an error",
                 request.job_name
             );
-            Err(ExecutionError(String::from_utf8_lossy(&output.stderr).to_string()).into())
+            Err(TesterError::ExecutionError(
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            ))
         }
     })
-    .await?
+    .await
+    .unwrap()
 }
 
 /// Execute a request using docker and build a response containing the
@@ -132,7 +139,7 @@ struct ExecutionErrorReport {
     explanation: String,
 }
 
-fn yaml_error(error: &Error) -> String {
+fn yaml_error(error: &TesterError) -> String {
     serde_yaml::to_string(&ExecutionErrorReport {
         grade: 0,
         max_grade: 1,

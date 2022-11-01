@@ -4,7 +4,6 @@ pub mod api;
 
 use self::api::State;
 use amqp_utils::AmqpRequest;
-use failure::{format_err, Error};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{future, stream, SinkExt, Stream, StreamExt};
 use git2::build::{CheckoutBuilder, RepoBuilder};
@@ -84,7 +83,7 @@ impl GitlabHook {
     }
 }
 
-fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error> {
+fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> eyre::Result<Repository> {
     let token_for_clone = token.to_owned();
     let mut callbacks = RemoteCallbacks::new();
     callbacks
@@ -127,7 +126,7 @@ fn clone(token: &str, hook: &GitlabHook, dir: &Path) -> Result<Repository, Error
 async fn package(
     config: &Configuration,
     hook: &GitlabHook,
-) -> Result<Vec<(String, String, String)>, failure::Error> {
+) -> eyre::Result<Vec<(String, String, String)>> {
     log::info!("packaging {}", hook.desc());
     let temp = Temp::new_dir()?;
     let root = temp.to_path_buf();
@@ -228,7 +227,7 @@ pub async fn packager(
     cpu_access: &Semaphore,
     receive_hook: Receiver<GitlabHook>,
     send_request: Sender<AmqpRequest>,
-) -> Result<(), failure::Error> {
+) -> eyre::Result<()> {
     let labs = receive_hook
         .then(move |hook: GitlabHook| {
             let config = config.clone();
@@ -237,14 +236,14 @@ pub async fn packager(
                 let base_url = config.server.base_url.clone();
                 let _permit = cpu_access.acquire().await;
                 let labs = package(&config, &clone_hook).await?;
-                Ok::<_, failure::Error>(labs_result_to_stream(&base_url, &hook, labs))
+                Ok::<_, eyre::Report>(labs_result_to_stream(&base_url, &hook, labs))
             }
         })
         .filter_map(|s| future::ready(s.ok()))
         .flatten();
     pin_utils::pin_mut!(labs);
     send_request
-        .sink_map_err(|e| format_err!("sink error: {}", e))
+        .sink_map_err(|e| eyre::Report::new(e).wrap_err("sink error"))
         .send_all(&mut labs.map(Ok))
         .await
 }
@@ -257,6 +256,6 @@ pub fn to_opaque(hook: &GitlabHook, zip_file_name: &str) -> String {
     serde_json::to_string(&(hook, zip_file_name)).unwrap()
 }
 
-pub fn from_opaque(opaque: &str) -> Result<(GitlabHook, String), Error> {
-    Ok(serde_json::from_str(opaque)?)
+pub fn from_opaque(opaque: &str) -> serde_json::Result<(GitlabHook, String)> {
+    serde_json::from_str(opaque)
 }

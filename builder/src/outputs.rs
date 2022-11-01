@@ -1,4 +1,3 @@
-use failure::Error;
 use serde_derive::Serialize;
 use std::fs::File;
 use std::io::{self, Write};
@@ -31,7 +30,7 @@ pub fn write_output(opt: &Opt, output: &str) {
     }
 }
 
-pub fn write_error(opt: &Opt, error: &Error) {
+pub fn write_error(opt: &Opt, error: eyre::Report) {
     write_output(
         opt,
         &serde_yaml::to_string(&Output {
