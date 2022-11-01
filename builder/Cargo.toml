@@ -12,9 +12,9 @@ serde = "1.0.145"
 serde_derive = "1.0.145"
 serde_yaml = "0.9.13"
 structopt = "0.3.26"
-failure = "0.1.8"
-failure_derive = "0.1.8"
 is_executable = "1.0.1"
+thiserror = "1.0.37"
+eyre = "0.6.8"
 
 [dependencies.graders-utils]
 path = "../graders-utils"

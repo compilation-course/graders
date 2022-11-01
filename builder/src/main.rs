@@ -1,15 +1,10 @@
 mod commands;
 mod outputs;
 
-use failure::Fail;
 use graders_utils::ziputils::unzip;
 use mktemp::Temp;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
-
-#[derive(Fail, Debug)]
-#[fail(display = "zip extract error")]
-struct ZipExtractError(#[cause] failure::Error);
 
 /// Compile the compiler from the given directory, set env
 /// DTIGER environment variable and run the tests using the
@@ -66,7 +61,7 @@ async fn main() {
         match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir).await {
             Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
             Err(e) => {
-                outputs::write_error(&opt, &ZipExtractError(e).into());
+                outputs::write_error(&opt, e.into());
                 return;
             }
         }
@@ -74,6 +69,6 @@ async fn main() {
     let dtiger = Path::new(&opt.src).join("src/driver/dtiger");
     match commands::build(&opt).and_then(|_| commands::run_test(&opt, &dtiger)) {
         Ok(output) => outputs::write_output(&opt, &output),
-        Err(e) => outputs::write_error(&opt, &e),
+        Err(e) => outputs::write_error(&opt, e.into()),
     }
 }

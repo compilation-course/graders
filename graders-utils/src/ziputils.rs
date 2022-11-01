@@ -1,6 +1,5 @@
 // TODO This should use asynchronous file operations, as well as run zip/unzip
 // operations onto a worker thread.
-use failure::{bail, ensure, ResultExt};
 use reqwest::{self, StatusCode};
 use std::fs::{self, File};
 use std::io;
@@ -9,10 +8,26 @@ use std::path::{Path, PathBuf};
 use tokio::io::AsyncWriteExt;
 use zip::write::{FileOptions, ZipWriter};
 
+#[derive(Debug, thiserror::Error)]
+pub enum ZipError {
+    #[error("file name in zip does not start with {0}: `{1:?}'")]
+    BadPrefix(String, PathBuf),
+    #[error("cannot write zip file {1}")]
+    CannotWrite(#[source] std::io::Error, PathBuf),
+    #[error("could not retrieve `{0}': {1}")]
+    CouldNotRetrieve(String, StatusCode),
+    #[error("IO error")]
+    IoError(#[from] std::io::Error),
+    #[error("could not retrieve `{1}'")]
+    ReqwestError(#[source] reqwest::Error, String),
+    #[error("error when processing zip file")]
+    ZipError(#[from] zip::result::ZipError),
+}
+
 /// Unzip `zip_file` in `dir`, ensure that all paths start with the specified
 /// `prefix` directory and a slash and return the path to this directory.
 /// `zip_file` may be an URL starting with `http://` or `https://`.
-pub async fn unzip(dir: &Path, zip_file: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
+pub async fn unzip(dir: &Path, zip_file: &str, prefix: &str) -> Result<PathBuf, ZipError> {
     if zip_file.starts_with("http://") || zip_file.starts_with("https://") {
         let downloaded_file = download_url(dir, zip_file, prefix).await?;
         unzip_file(dir, &downloaded_file, prefix)
@@ -21,7 +36,7 @@ pub async fn unzip(dir: &Path, zip_file: &str, prefix: &str) -> Result<PathBuf, 
     }
 }
 
-fn unzip_file(dir: &Path, zip_file: &Path, prefix: &str) -> Result<PathBuf, failure::Error> {
+fn unzip_file(dir: &Path, zip_file: &Path, prefix: &str) -> Result<PathBuf, ZipError> {
     let with_slash = format!("{}/", prefix);
     let reader = File::open(zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
@@ -29,12 +44,9 @@ fn unzip_file(dir: &Path, zip_file: &Path, prefix: &str) -> Result<PathBuf, fail
         let mut file = zip.by_index(i)?;
         let name = file.name().to_owned();
         let name = Path::new(&name);
-        ensure!(
-            !name.is_absolute() && name.starts_with(&with_slash),
-            "file name in zip does not start with {}: {:?}",
-            with_slash,
-            name
-        );
+        if name.is_absolute() || !name.starts_with(&with_slash) {
+            return Err(ZipError::BadPrefix(with_slash, name.to_path_buf()));
+        }
         let target_file = dir.join(name);
         if target_file.to_str().unwrap().ends_with('/') {
             fs::create_dir(&target_file)?;
@@ -51,22 +63,27 @@ fn unzip_file(dir: &Path, zip_file: &Path, prefix: &str) -> Result<PathBuf, fail
     Ok(dir)
 }
 
-async fn download_url(dir: &Path, url: &str, prefix: &str) -> Result<PathBuf, failure::Error> {
+async fn download_url(dir: &Path, url: &str, prefix: &str) -> Result<PathBuf, ZipError> {
     let zip = reqwest::get(url)
         .await
-        .with_context(|e| format!("cannot retrieve {}: {}", url, e))?;
+        .map_err(|e| ZipError::ReqwestError(e, url.to_owned()))?;
     if zip.status() != StatusCode::OK {
         log::warn!("could not retrieve {}: {}", url, zip.status());
-        bail!("cannot retrieve {}: {}", url, zip.status());
+        return Err(ZipError::CouldNotRetrieve(url.to_owned(), zip.status()));
     }
-    let target_file = dir.join(&format!("{prefix}.zip"));
+    let target_file = dir.join(format!("{prefix}.zip"));
     log::debug!("retrieving {} as {:?}", url, target_file);
     let mut target = tokio::fs::File::create(&target_file).await?;
     // TODO Use bytes_stream() and progressive write to avoid loading the whole file to memory.
     target
-        .write_all(&zip.bytes().await?[..])
+        .write_all(
+            &zip.bytes()
+                .await
+                .map_err(|e| ZipError::ReqwestError(e, url.to_owned()))?[..],
+        )
         .await
-        .with_context(|e| format!("cannot write zip file: {}", e))?;
+        .map_err(|e| ZipError::CannotWrite(e, target_file.clone()))?;
+
     target.sync_all().await?;
     Ok(target_file)
 }

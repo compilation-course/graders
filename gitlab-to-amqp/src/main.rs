@@ -7,23 +7,21 @@ mod web;
 
 use clap::{arg, command};
 use config::Configuration;
-use failure::Error;
 use futures::channel::mpsc;
 use futures::{stream, try_join, StreamExt, TryFutureExt, TryStreamExt};
-use std::process;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 
-fn configuration() -> Result<Configuration, Error> {
+fn configuration() -> eyre::Result<Configuration> {
     let matches = command!()
-        .arg(arg!(-c --config <FILE> "Configuration file containing credentials"))
+        .arg(arg!(-c --config <FILE> "Configuration file containing credentials").required(true))
         .get_matches();
     let config = config::load_configuration(matches.get_one::<String>("config").unwrap())?;
     config::setup_dirs(&config)?;
     Ok(config)
 }
 
-async fn run() -> Result<(), Error> {
+async fn run() -> eyre::Result<()> {
     let config = Arc::new(configuration()?);
     log::info!(
         "configured for labs {:?}",
@@ -71,11 +69,9 @@ async fn run() -> Result<(), Error> {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> eyre::Result<()> {
     env_logger::init();
+    color_eyre::install()?;
     log::info!("starting");
-    if let Err(e) = run().await {
-        log::error!("exiting because of {}", e);
-        process::exit(1);
-    }
+    run().await
 }
