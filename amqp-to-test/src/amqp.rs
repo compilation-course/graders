@@ -74,7 +74,7 @@ async fn amqp_sender(
                     response.job_name,
                     response.result_queue
                 );
-                let queue = mem::replace(&mut response.result_queue, "".to_owned());
+                let queue = std::mem::take(&mut response.result_queue);
                 let delivery_tag = mem::replace(&mut response.delivery_tag, 0);
                 channel.basic_publish("", &queue, &response).await?;
                 ack_channel.basic_ack(delivery_tag).await?;

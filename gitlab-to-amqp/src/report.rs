@@ -44,7 +44,7 @@ fn signal_to_explanation(signal: u32) -> String {
         ),
         Ok(libc::SIGBUS) => String::from("bus error"),
         Ok(libc::SIGSEGV) => String::from("segmentation fault"),
-        _ => format!("crash (signal {})", signal),
+        _ => format!("crash (signal {signal})"),
     }
 }
 
@@ -56,12 +56,11 @@ fn yaml_to_markdown(lab: &str, yaml: &str) -> eyre::Result<(String, usize, usize
             format!(
                 r#"## Error
 
-There has been an error during the test for {}:
+There has been an error during the test for {lab}:
 
 ```
-{}
-```"#,
-                lab, explanation
+{explanation}
+```"#
             ),
             report.grade,
             report.max_grade,
@@ -87,14 +86,14 @@ There has been an error during the test for {}:
                                 "- {}{}{}",
                                 &test.description,
                                 if test.coefficient == 1 {
-                                    "".to_owned()
+                                    String::new()
                                 } else {
                                     format!(" (coefficient {})", test.coefficient)
                                 },
-                                test.signal.map_or_else(
-                                    || "".to_owned(),
-                                    |s| format!(" [{}]", signal_to_explanation(s))
-                                )
+                                test.signal.map_or_else(String::new, |s| format!(
+                                    " [{}]",
+                                    signal_to_explanation(s)
+                                ))
                             )
                         })
                         .collect::<Vec<_>>()
@@ -144,7 +143,7 @@ pub fn response_to_post(
         &state,
         hook.branch_name(),
         &response.lab,
-        Some(&format!("grade: {}/{}", grade, max_grade)),
+        Some(&format!("grade: {grade}/{max_grade}")),
     );
     Ok(if state == State::Success {
         log::info!(
@@ -166,11 +165,11 @@ pub fn response_to_post(
 
 fn pass_fail(grade: usize, max_grade: usize) -> String {
     if grade > max_grade {
-        format!("{} passing out of {} [!]", grade, max_grade)
+        format!("{grade} passing out of {max_grade} [!]")
     } else if grade == max_grade {
-        format!("all {} passing", max_grade)
+        format!("all {max_grade} passing")
     } else if grade == 0 {
-        format!("all {} failing", max_grade)
+        format!("all {max_grade} failing")
     } else {
         format!("{} failing out of {}", max_grade - grade, max_grade)
     }

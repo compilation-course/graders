@@ -37,7 +37,7 @@ pub async fn unzip(dir: &Path, zip_file: &str, prefix: &str) -> Result<PathBuf, 
 }
 
 fn unzip_file(dir: &Path, zip_file: &Path, prefix: &str) -> Result<PathBuf, ZipError> {
-    let with_slash = format!("{}/", prefix);
+    let with_slash = format!("{prefix}/");
     let reader = File::open(zip_file)?;
     let mut zip = zip::ZipArchive::new(reader)?;
     for i in 0..zip.len() {

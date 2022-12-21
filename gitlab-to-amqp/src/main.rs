@@ -38,7 +38,7 @@ async fn run() -> eyre::Result<()> {
     let (send_response, receive_response) = mpsc::channel(16);
     let packager = gitlab::packager(&config, &cpu_access, receive_hook, send_request);
     let amqp_process =
-        amqp::amqp_process(&config, receive_request, send_response).map_err(|e| e.into());
+        amqp::amqp_process(&config, receive_request, send_response).map_err(Into::into);
     let response_poster = receive_response
         .map(Ok)
         .try_for_each_concurrent(None, |response| {

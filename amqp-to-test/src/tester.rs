@@ -44,8 +44,8 @@ async fn execute(
         Some(file) => config.dir_in_docker.join(file),
         None => {
             return Err(TesterError::ConfigurationNotFound(
-                request.lab.to_owned(),
-                request.job_name.to_owned(),
+                request.lab.clone(),
+                request.job_name.clone(),
             ));
         }
     };
@@ -61,7 +61,7 @@ async fn execute(
         .cloned()
         .unwrap_or_default()
         .iter()
-        .flat_map(|(k, v)| vec!["-e".to_owned(), format!("{}={}", k, v)])
+        .flat_map(|(k, v)| vec!["-e".to_owned(), format!("{k}={v}")])
         .collect::<Vec<_>>();
     let docker_image = config.docker_image.clone();
     let extra_args = config.extra_args.clone().unwrap_or_default();
