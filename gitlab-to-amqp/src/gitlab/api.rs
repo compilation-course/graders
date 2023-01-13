@@ -59,7 +59,7 @@ pub fn post_status(
     name: &str,
     description: Option<&str>,
 ) -> Request<String> {
-    let state = format!("{}", state);
+    let state = format!("{state}");
     let mut params: Vec<(&str, &str)> = vec![("state", &state), ("name", name)];
     if let Some(r) = ref_ {
         params.push(("ref", r));

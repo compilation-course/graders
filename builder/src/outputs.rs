@@ -26,7 +26,7 @@ pub fn write_output(opt: &Opt, output: &str) {
             exit(1);
         }
     } else {
-        println!("{}", output);
+        println!("{output}");
     }
 }
 

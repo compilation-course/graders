@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-env_logger = "0.9.1"
+env_logger = "0.10.0"
 futures = "0.3.24"
 log = "0.4.17"
 serde = "1.0.145"
@@ -24,4 +24,4 @@ path = "../amqp-utils"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread", "sync"]
-version = "1.21.2"
+version = "1.23.1"
