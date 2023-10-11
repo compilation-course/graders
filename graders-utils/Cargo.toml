@@ -3,6 +3,8 @@ authors = ["Samuel Tardieu <sam@rfc1149.net>"]
 name = "graders-utils"
 version = "0.1.0"
 edition = "2021"
+license = "GPL-3.0"
+rust-version = "1.70.0"
 
 [dependencies]
 log = "0.4.20"
