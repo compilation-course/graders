@@ -984,6 +984,7 @@ dependencies = [
  "libc",
  "log",
  "mktemp",
+ "openssl",
  "pin-utils",
  "serde",
  "serde_derive",

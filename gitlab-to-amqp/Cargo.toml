@@ -21,6 +21,10 @@ libc = "0.2.149"
 eyre = "0.6.8"
 color-eyre = "0.6.2"
 
+[dev-dependencies]
+# Fake one to be able to use cargo update -Zminimal-versions
+openssl = "0.10.57"
+
 [dependencies.clap]
 features = ["cargo"]
 version = "4.4.6"
