@@ -3,6 +3,7 @@ name = "amqp-utils"
 version = "0.1.0"
 authors = ["Samuel Tardieu <sam@rfc1149.net>"]
 edition = "2021"
+license = "GPL-3.0"
 rust-version = "1.70.0"
 
 [dependencies]
