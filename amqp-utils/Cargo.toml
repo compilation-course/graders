@@ -7,7 +7,7 @@ license = "GPL-3.0"
 rust-version = "1.70.0"
 
 [dependencies]
-futures = "0.3.28"
+futures = "0.3.29"
 lapin = "2.3.1"
 log = "0.4.20"
 serde = "1.0.189"
