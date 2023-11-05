@@ -19,7 +19,7 @@ serde_json = "1.0.108"
 serde_yaml = "0.9.27"
 zip = "0.6.6"
 pin-utils = "0.1.0"
-libc = "0.2.149"
+libc = "0.2.150"
 eyre = "0.6.8"
 color-eyre = "0.6.2"
 
