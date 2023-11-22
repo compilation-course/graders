@@ -47,7 +47,7 @@ version = "1.4.1"
 
 [dependencies.url]
 features = ["serde"]
-version = "2.4.1"
+version = "2.5.0"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]
