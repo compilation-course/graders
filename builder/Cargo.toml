@@ -16,7 +16,7 @@ serde_yaml = "0.9.27"
 structopt = "0.3.26"
 is_executable = "1.0.1"
 thiserror = "1.0.50"
-eyre = "0.6.9"
+eyre = "0.6.10"
 
 [dependencies.graders-utils]
 path = "../graders-utils"
