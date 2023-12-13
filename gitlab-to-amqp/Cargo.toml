@@ -20,7 +20,7 @@ serde_yaml = "0.9.27"
 zip = "0.6.6"
 pin-utils = "0.1.0"
 libc = "0.2.151"
-eyre = "0.6.10"
+eyre = "0.6.11"
 color-eyre = "0.6.2"
 
 [dev-dependencies]
