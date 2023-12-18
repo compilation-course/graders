@@ -39,7 +39,7 @@ path = "../graders-utils"
 
 [dependencies.hyper]
 features = ["server"]
-version = "0.14.27"
+version = "0.14.28"
 
 [dependencies.uuid]
 features = ["v4"]
