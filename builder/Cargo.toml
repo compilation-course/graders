@@ -15,7 +15,7 @@ serde_derive = "1.0.193"
 serde_yaml = "0.9.29"
 structopt = "0.3.26"
 is_executable = "1.0.1"
-thiserror = "1.0.55"
+thiserror = "1.0.56"
 eyre = "0.6.11"
 
 [dependencies.graders-utils]
