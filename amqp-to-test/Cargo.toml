@@ -19,7 +19,7 @@ color-eyre = "0.6.2"
 
 [dependencies.clap]
 features = ["cargo"]
-version = "4.4.12"
+version = "4.4.13"
 
 [dependencies.amqp-utils]
 path = "../amqp-utils"
