@@ -2,7 +2,6 @@ mod commands;
 mod outputs;
 
 use graders_utils::ziputils::unzip;
-use mktemp::Temp;
 use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
@@ -51,14 +50,14 @@ pub struct Opt {
 async fn main() {
     env_logger::init();
     let mut opt = Opt::from_args();
-    let tmp = Temp::new_dir().unwrap();
+    let tmp = tempfile::TempDir::new().unwrap();
     let top_level_dir = opt
         .top_level_dir
         .to_str()
         .expect("non-utf8 character in top-level directory");
     if !Path::new(&opt.src).is_dir() {
         log::info!("Unzipping {:?}", opt.src);
-        match unzip(&tmp.to_path_buf(), &opt.src, top_level_dir).await {
+        match unzip(&tmp.into_path(), &opt.src, top_level_dir).await {
             Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
             Err(e) => {
                 outputs::write_error(&opt, e.into());

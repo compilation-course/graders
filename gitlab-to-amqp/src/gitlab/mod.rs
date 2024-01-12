@@ -9,7 +9,6 @@ use futures::{future, stream, SinkExt, Stream, StreamExt};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use graders_utils::ziputils::zip_recursive;
-use mktemp::Temp;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -128,8 +127,8 @@ async fn package(
     hook: &GitlabHook,
 ) -> eyre::Result<Vec<(String, String, String)>> {
     log::info!("packaging {}", hook.desc());
-    let temp = Temp::new_dir()?;
-    let root = temp.to_path_buf();
+    let temp = tempfile::TempDir::new()?;
+    let root = temp.into_path();
     let _repo = clone(&config.gitlab.token, hook, &root).map_err(|e| {
         log::error!("error when cloning: {}", e);
         e
