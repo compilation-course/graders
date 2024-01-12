@@ -9,7 +9,6 @@ rust-version = "1.70.0"
 [dependencies]
 env_logger = "0.10.1"
 log = "0.4.20"
-mktemp = "0.5.1"
 serde = "1.0.195"
 serde_derive = "1.0.195"
 serde_yaml = "0.9.30"
@@ -17,6 +16,7 @@ structopt = "0.3.26"
 is_executable = "1.0.1"
 thiserror = "1.0.56"
 eyre = "0.6.11"
+tempfile = "3.9.0"
 
 [dependencies.graders-utils]
 path = "../graders-utils"
