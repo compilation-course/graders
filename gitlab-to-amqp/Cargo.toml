@@ -43,7 +43,7 @@ version = "0.14.28"
 
 [dependencies.uuid]
 features = ["v4"]
-version = "1.4.1"
+version = "1.6.1"
 
 [dependencies.url]
 features = ["serde"]
