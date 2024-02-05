@@ -21,7 +21,7 @@ pin-utils = "0.1.0"
 libc = "0.2.153"
 eyre = "0.6.12"
 color-eyre = "0.6.2"
-tempfile = "3.9.0"
+tempfile = "3.10.0"
 
 [dev-dependencies]
 # Fake one to be able to use cargo update -Zminimal-versions
