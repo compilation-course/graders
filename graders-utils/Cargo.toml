@@ -11,6 +11,6 @@ log = "0.4.20"
 reqwest = { version = "0.11.23", features = ["stream"] }
 serde = "1.0.196"
 serde_derive = "1.0.196"
-thiserror = "1.0.56"
+thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["fs", "io-util"] }
 zip = "0.6.6"
