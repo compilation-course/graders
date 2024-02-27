@@ -16,7 +16,7 @@ structopt = "0.3.26"
 is_executable = "1.0.1"
 thiserror = "1.0.57"
 eyre = "0.6.12"
-tempfile = "3.10.0"
+tempfile = "3.10.1"
 
 [dependencies.graders-utils]
 path = "../graders-utils"
