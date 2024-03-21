@@ -13,7 +13,7 @@ log = "0.4.21"
 serde = "1.0.197"
 serde_derive = "1.0.197"
 serde_yaml = "0.9.33"
-thiserror = "1.0.57"
+thiserror = "1.0.58"
 eyre = "0.6.12"
 color-eyre = "0.6.3"
 
