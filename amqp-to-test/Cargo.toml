@@ -15,7 +15,7 @@ serde_derive = "1.0.197"
 serde_yaml = "0.9.30"
 thiserror = "1.0.57"
 eyre = "0.6.12"
-color-eyre = "0.6.2"
+color-eyre = "0.6.3"
 
 [dependencies.clap]
 features = ["cargo"]
