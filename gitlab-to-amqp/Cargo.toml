@@ -20,7 +20,7 @@ zip = "0.6.6"
 pin-utils = "0.1.0"
 libc = "0.2.153"
 eyre = "0.6.12"
-color-eyre = "0.6.2"
+color-eyre = "0.6.3"
 tempfile = "3.10.1"
 
 [dev-dependencies]
