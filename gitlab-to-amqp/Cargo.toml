@@ -29,7 +29,7 @@ openssl = "0.10.64"
 
 [dependencies.clap]
 features = ["cargo"]
-version = "4.4.18"
+version = "4.5.4"
 
 [dependencies.amqp-utils]
 path = "../amqp-utils"
