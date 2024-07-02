@@ -102,7 +102,7 @@ fn add_to_zip(
 ) -> Result<(), io::Error> {
     zip_file.add_directory(
         format!("{}/", dir_in_zip.to_string_lossy()),
-        FileOptions::default(),
+        FileOptions::<()>::default(),
     )?;
     for entry in fs::read_dir(dir)? {
         let path = entry?.path();
@@ -116,7 +116,7 @@ fn add_to_zip(
             let mode = metadata.permissions().mode();
             zip_file.start_file(
                 zip_path.to_string_lossy(),
-                FileOptions::default().unix_permissions(mode),
+                FileOptions::<()>::default().unix_permissions(mode),
             )?;
             io::copy(&mut File::open(&full_path)?, zip_file)?;
         }
