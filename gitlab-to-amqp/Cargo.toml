@@ -4,21 +4,21 @@ name = "gitlab-to-amqp"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0"
-rust-version = "1.70.0"
+rust-version = "1.74.1"
 
 [dependencies]
-env_logger = "0.10.1"
+env_logger = "0.11.0"
 futures = "0.3.30"
-git2 = "0.18.3"
+git2 = "0.19.0"
 hyper-tls = "0.5.0"
-log = "0.4.21"
-serde = "1.0.197"
-serde_derive = "1.0.197"
-serde_json = "1.0.115"
+log = "0.4.22"
+serde = "1.0.203"
+serde_derive = "1.0.203"
+serde_json = "1.0.120"
 serde_yaml = "0.9.34"
 zip = "0.6.6"
 pin-utils = "0.1.0"
-libc = "0.2.153"
+libc = "0.2.155"
 eyre = "0.6.12"
 color-eyre = "0.6.3"
 tempfile = "3.10.1"
@@ -39,16 +39,16 @@ path = "../graders-utils"
 
 [dependencies.hyper]
 features = ["server"]
-version = "0.14.28"
+version = "0.14.29"
 
 [dependencies.uuid]
 features = ["v4"]
-version = "1.8.0"
+version = "1.9.1"
 
 [dependencies.url]
 features = ["serde"]
-version = "2.5.0"
+version = "2.5.2"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]
-version = "1.37.0"
+version = "1.38.0"
