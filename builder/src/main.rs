@@ -1,9 +1,9 @@
 mod commands;
 mod outputs;
 
+use clap::Parser;
 use graders_utils::ziputils::unzip;
 use std::path::{Path, PathBuf};
-use structopt::StructOpt;
 
 /// Compile the compiler from the given directory, set env
 /// DTIGER environment variable and run the tests using the
@@ -14,42 +14,37 @@ use structopt::StructOpt;
 /// Logging is enabled by setting `RUST_LOG` to the desired
 /// level, possibly restricted to this program:
 /// `RUST_LOG=builder=trace ./builder …` will generate many traces.
-#[derive(StructOpt)]
-#[structopt(name = "builder")]
+#[derive(Parser)]
 pub struct Opt {
     /// Use a non-standard LLVM
-    #[structopt(name = "llvm lib directory", long = "with-llvm", parse(from_os_str))]
+    #[clap(long)]
     with_llvm: Option<PathBuf>,
 
     /// Run tests in verbose mode
-    #[structopt(short = "v", long = "verbose")]
+    #[clap(short, long)]
     verbose: bool,
 
     /// Output file to use instead of standard out
-    #[structopt(short = "o", long = "output", parse(from_os_str))]
+    #[clap(short, long)]
     output_file: Option<PathBuf>,
 
     /// Compiler source (directory, zip file, or URL of zip file)
-    #[structopt(name = "compiler location")]
     src: String,
 
     /// Name of the mandatory top-level directory in the zip file
-    #[structopt(name = "top-level directory", parse(from_os_str))]
     top_level_dir: PathBuf,
 
     /// Test driver command
-    #[structopt(name = "test command", parse(from_os_str))]
     test_command: PathBuf,
 
     /// Test YAML configuration file
-    #[structopt(name = "test configuration file", parse(from_os_str))]
     test_file: PathBuf,
 }
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
-    let mut opt = Opt::from_args();
+    let mut opt = Opt::parse();
     let tmp = tempfile::TempDir::new().unwrap();
     let top_level_dir = opt
         .top_level_dir
