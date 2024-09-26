@@ -4,7 +4,7 @@ name = "gitlab-to-amqp"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0"
-rust-version = "1.74.1"
+rust-version = "1.81.0"
 
 [dependencies]
 env_logger = "0.11.0"
