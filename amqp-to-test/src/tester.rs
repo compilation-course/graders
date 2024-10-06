@@ -73,7 +73,7 @@ async fn execute(
             .arg("run")
             .arg("--rm")
             .arg("-v")
-            .arg(&format!(
+            .arg(format!(
                 "{}:{}",
                 dir_on_host.to_str().unwrap(),
                 dir_in_docker.to_str().unwrap()
