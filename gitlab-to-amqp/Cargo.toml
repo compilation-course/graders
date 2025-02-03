@@ -25,7 +25,7 @@ tempfile = "3.10.1"
 
 [dev-dependencies]
 # Fake one to be able to use cargo update -Zminimal-versions
-openssl = "0.10.64"
+openssl = "0.10.70"
 
 [dependencies.clap]
 features = ["cargo"]
