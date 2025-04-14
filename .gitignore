@@ -1,2 +1,9 @@
 **/target/
 .*.swp
+.direnv
+.envrc
+.idea
+.metals
+.vscode
+*.nix
+sam.yml
