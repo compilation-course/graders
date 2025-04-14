@@ -69,9 +69,7 @@ pub async fn amqp_process(
     receive_request: Receiver<AmqpRequest>,
     send_response: Sender<AmqpResponse>,
 ) -> Result<(), AmqpError> {
-    let conn = AmqpConnection::new(&config.amqp)
-        .await
-        .map_err(AmqpError::from)?;
+    let conn = AmqpConnection::new(&config.amqp).await?;
     let config = config.clone();
     let publisher = {
         let channel = conn.create_channel().await?;
