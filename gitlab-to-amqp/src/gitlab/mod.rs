@@ -5,7 +5,7 @@ pub mod api;
 use self::api::State;
 use amqp_utils::AmqpRequest;
 use futures::channel::mpsc::{Receiver, Sender};
-use futures::{future, stream, SinkExt, Stream, StreamExt};
+use futures::{SinkExt, Stream, StreamExt, future, stream};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use graders_utils::ziputils::zip_recursive;
@@ -138,7 +138,7 @@ async fn package(
     for lab in config.labs.iter().filter(|l| l.is_enabled()).cloned() {
         let path = root.join(&lab.base).join(&lab.dir);
         log::trace!("looking for witness {:?} in path {:?}", lab.witness, path);
-        if path.is_dir() && lab.witness.clone().map_or(true, |w| path.join(w).is_file()) {
+        if path.is_dir() && lab.witness.clone().is_none_or(|w| path.join(w).is_file()) {
             log::trace!("publishing initial {} status for {}", lab.name, hook.desc());
             match poster::post(api::post_status(
                 &config.gitlab,
@@ -193,7 +193,7 @@ fn labs_result_to_stream(
     base_url: &Url,
     hook: &GitlabHook,
     labs: Vec<(String, String, String)>,
-) -> impl Stream<Item = AmqpRequest> {
+) -> impl Stream<Item = AmqpRequest> + use<> {
     let hook = hook.clone();
     let base_url = base_url.clone();
     stream::iter(labs.into_iter().map(move |(lab, dir, zip)| {

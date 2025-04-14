@@ -74,6 +74,7 @@ ignore = [
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
     #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
+    { id = "RUSTSEC-2024-0384", reason = "it will be removed in lapin 3.0, and is not used by lapin" },
 ]
 # If this is true, then cargo deny will use the git executable to fetch advisory database.
 # If this is false, then it uses a built-in git library.
@@ -98,7 +99,7 @@ allow = [
   "GPL-3.0",
   "MIT",
   "OpenSSL",
-  "Unicode-DFS-2016",
+  "Unicode-3.0",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the

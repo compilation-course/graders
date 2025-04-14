@@ -1,8 +1,8 @@
-use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::Request;
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use std::borrow::Borrow;
 use std::fmt;
-use url::{form_urlencoded, Url};
+use url::{Url, form_urlencoded};
 
 use super::GitlabHook;
 use crate::config::GitlabConfiguration;

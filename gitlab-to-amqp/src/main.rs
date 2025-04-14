@@ -8,7 +8,7 @@ mod web;
 use clap::{arg, command};
 use config::Configuration;
 use futures::channel::mpsc;
-use futures::{stream, try_join, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{StreamExt, TryFutureExt, TryStreamExt, stream, try_join};
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 

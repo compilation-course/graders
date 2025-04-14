@@ -1,6 +1,6 @@
 use amqp_utils::{self, AmqpChannel, AmqpConnection, AmqpError, AmqpRequest, AmqpResponse};
 use futures::channel::mpsc::{Receiver, Sender};
-use futures::{future, try_join, FutureExt, SinkExt, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{FutureExt, SinkExt, StreamExt, TryFutureExt, TryStreamExt, future, try_join};
 use std::sync::Arc;
 
 use crate::config::Configuration;
@@ -69,9 +69,7 @@ pub async fn amqp_process(
     receive_request: Receiver<AmqpRequest>,
     send_response: Sender<AmqpResponse>,
 ) -> Result<(), AmqpError> {
-    let conn = AmqpConnection::new(&config.amqp)
-        .await
-        .map_err(AmqpError::from)?;
+    let conn = AmqpConnection::new(&config.amqp).await?;
     let config = config.clone();
     let publisher = {
         let channel = conn.create_channel().await?;
