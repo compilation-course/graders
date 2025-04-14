@@ -5,7 +5,7 @@ pub mod api;
 use self::api::State;
 use amqp_utils::AmqpRequest;
 use futures::channel::mpsc::{Receiver, Sender};
-use futures::{future, stream, SinkExt, Stream, StreamExt};
+use futures::{SinkExt, Stream, StreamExt, future, stream};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use graders_utils::ziputils::zip_recursive;
@@ -193,7 +193,7 @@ fn labs_result_to_stream(
     base_url: &Url,
     hook: &GitlabHook,
     labs: Vec<(String, String, String)>,
-) -> impl Stream<Item = AmqpRequest> {
+) -> impl Stream<Item = AmqpRequest> + use<> {
     let hook = hook.clone();
     let base_url = base_url.clone();
     stream::iter(labs.into_iter().map(move |(lab, dir, zip)| {

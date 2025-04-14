@@ -1,5 +1,5 @@
-use crate::errors::AmqpError;
 use crate::AmqpChannel;
+use crate::errors::AmqpError;
 use futures::future::TryFutureExt;
 use lapin::{Connection, ConnectionProperties};
 use serde::{Deserialize, Serialize};

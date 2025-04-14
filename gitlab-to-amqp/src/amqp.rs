@@ -1,6 +1,6 @@
 use amqp_utils::{self, AmqpChannel, AmqpConnection, AmqpError, AmqpRequest, AmqpResponse};
 use futures::channel::mpsc::{Receiver, Sender};
-use futures::{future, try_join, FutureExt, SinkExt, StreamExt, TryFutureExt, TryStreamExt};
+use futures::{FutureExt, SinkExt, StreamExt, TryFutureExt, TryStreamExt, future, try_join};
 use std::sync::Arc;
 
 use crate::config::Configuration;

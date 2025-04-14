@@ -1,7 +1,7 @@
 use eyre::Context;
-use futures::channel::mpsc::Sender;
 use futures::SinkExt;
-use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE};
+use futures::channel::mpsc::Sender;
+use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE, HeaderValue};
 use hyper::server::conn::AddrStream;
 use hyper::service;
 use hyper::{Body, Method, Request, Response, Server, StatusCode};

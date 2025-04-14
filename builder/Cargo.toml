@@ -2,9 +2,9 @@
 authors = ["Samuel Tardieu <sam@rfc1149.net>"]
 name = "builder"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "GPL-3.0"
-rust-version = "1.81.0"
+rust-version = "1.86.0"
 
 [dependencies]
 env_logger = "0.11.8"

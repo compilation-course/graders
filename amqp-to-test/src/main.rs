@@ -5,9 +5,9 @@ mod tester;
 use amqp_utils::AmqpError;
 use clap::{arg, command};
 use config::{Configuration, ConfigurationError};
+use futures::FutureExt;
 use futures::channel::mpsc;
 use futures::try_join;
-use futures::FutureExt;
 use std::sync::Arc;
 
 #[derive(Debug, thiserror::Error)]
