@@ -13,4 +13,4 @@ serde = "1.0.219"
 serde_derive = "1.0.219"
 thiserror = "2.0.0"
 tokio = { version = "1.44.2", features = ["fs", "io-util"] }
-zip = "2.6.1"
+zip = "4.0.0"
