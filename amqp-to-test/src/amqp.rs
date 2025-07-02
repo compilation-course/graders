@@ -39,7 +39,7 @@ async fn amqp_receiver(
         .filter(|e| future::ready(e.is_ok()));
     send_request
         .sink_map_err(|e| {
-            log::warn!("sink error: {}", e);
+            log::warn!("sink error: {e}");
             AmqpError::from(e)
         })
         .send_all(&mut data)

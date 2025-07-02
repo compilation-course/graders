@@ -160,7 +160,7 @@ pub async fn start_executor(
             let cpu_access = cpu_access.clone();
             let send_response = send_response.clone();
             async move {
-                log::debug!("received request {:?}", request);
+                log::debug!("received request {request:?}");
                 let mut send_response = send_response.clone();
                 let config = config.clone();
                 tokio::spawn(async move {
@@ -168,7 +168,7 @@ pub async fn start_executor(
                     send_response
                         .send(response)
                         .inspect_err(|e| {
-                            log::error!("unable to send AMQPResponse to queue: {}", e);
+                            log::error!("unable to send AMQPResponse to queue: {e}");
                         })
                         .await
                 });

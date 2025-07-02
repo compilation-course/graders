@@ -22,7 +22,7 @@ fn write_file<P: AsRef<Path>>(file: P, output: &str) -> io::Result<()> {
 pub fn write_output(opt: &Opt, output: &str) {
     if let Some(ref output_file) = opt.output_file {
         if let Err(e) = write_file(output_file, output) {
-            log::error!("cannot write output file {:?}: {}", output_file, e);
+            log::error!("cannot write output file {output_file:?}: {e}");
             exit(1);
         }
     } else {

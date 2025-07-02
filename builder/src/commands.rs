@@ -54,7 +54,7 @@ fn exec(opt: &Opt, command: &str) -> Result<(), RunError> {
 }
 
 fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), RunError> {
-    log::info!("executing {} with args {:?}", command, args);
+    log::info!("executing {command} with args {args:?}");
     let output = Command::new(command)
         .args(args)
         .current_dir(&opt.src)
@@ -62,12 +62,7 @@ fn exec_args(opt: &Opt, command: &str, args: &[&str]) -> Result<(), RunError> {
         .stdout(Stdio::null())
         .output()
         .map_err(|e| RunError::CannotBuildProgram(e, opt.src.clone()))?;
-    log::trace!(
-        "command {} with args {:?} terminated with status {:?}",
-        command,
-        args,
-        output
-    );
+    log::trace!("command {command} with args {args:?} terminated with status {output:?}");
     if output.status.code() == Some(0) {
         Ok(())
     } else {

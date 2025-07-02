@@ -44,20 +44,20 @@ async fn run() -> eyre::Result<()> {
         .try_for_each_concurrent(None, |response| {
             let cloned_config = config.clone();
             async move {
-                log::trace!("Received reponse: {:?}", response);
+                log::trace!("Received reponse: {response:?}");
                 match report::response_to_post(&cloned_config, &response) {
                     Ok(rqs) => {
                         stream::iter(rqs)
                             .for_each_concurrent(None, |rq| async {
                                 if let Err(e) = poster::post(rq).await {
-                                    log::warn!("unable to post response: {}", e);
+                                    log::warn!("unable to post response: {e}");
                                 }
                             })
                             .await;
                         Ok(())
                     }
                     Err(e) => {
-                        log::error!("unable to build response: {}", e);
+                        log::error!("unable to build response: {e}");
                         Err(e)
                     }
                 }

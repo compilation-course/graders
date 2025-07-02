@@ -130,7 +130,7 @@ async fn package(
     let temp = tempfile::TempDir::new()?;
     let root = temp.keep();
     let _repo = clone(&config.gitlab.token, hook, &root).map_err(|e| {
-        log::error!("error when cloning: {}", e);
+        log::error!("error when cloning: {e}");
         e
     })?;
     let zip_dir = &Path::new(&config.package.zip_dir);
@@ -151,7 +151,7 @@ async fn package(
             .await
             {
                 Ok(_) => (),
-                Err(e) => log::warn!("unable to post initial status: {}", e),
+                Err(e) => log::warn!("unable to post initial status: {e}"),
             };
             log::trace!("packaging lab {} from {:?}", lab.name, path);
             let zip_basename = format!("{}.zip", Uuid::new_v4());
@@ -179,7 +179,7 @@ async fn package(
                     .await
                     {
                         Ok(_) => (),
-                        Err(e) => log::warn!("unable to post packaging error status: {}", e),
+                        Err(e) => log::warn!("unable to post packaging error status: {e}"),
                     }
                 }
             }
