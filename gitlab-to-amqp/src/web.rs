@@ -45,7 +45,7 @@ pub async fn web_server(
                             let body = hyper::body::to_bytes(body).await?;
                             let hook = serde_json::from_slice::<GitlabHook>(&body)
                                 .map_err(|e| {
-                                    log::error!("error when decoding body: {}", e);
+                                    log::error!("error when decoding body: {e}");
                                     e
                                 })
                                 .with_context(|| "error when decoding body")?;
@@ -81,11 +81,11 @@ pub async fn web_server(
                             } else if hook.is_delete() {
                                 log::debug!("branch deletion event for {}", hook.desc());
                             } else {
-                                log::trace!("received json and will pass it around: {:?}", hook);
+                                log::trace!("received json and will pass it around: {hook:?}");
                                 let mut send_hook = send_hook.clone();
                                 tokio::spawn(async move {
                                     if let Err(e) = send_hook.send(hook.clone()).await {
-                                        log::error!("unable to send hook {:?} around: {}", hook, e);
+                                        log::error!("unable to send hook {hook:?} around: {e}");
                                     }
                                 });
                             }
@@ -101,7 +101,7 @@ pub async fn web_server(
                             let zip_file =
                                 zip_dir.join(Path::new(path).strip_prefix("/zips/").unwrap());
                             if zip_file.is_file() {
-                                log::debug!("serving {:?}", path);
+                                log::debug!("serving {path:?}");
                                 let mut content =
                                     Vec::with_capacity(zip_file.metadata()?.len().try_into()?);
                                 File::open(&zip_file)
@@ -116,12 +116,12 @@ pub async fn web_server(
                                     .header(CONTENT_LENGTH, content.len())
                                     .body(Body::from(content))?)
                             } else {
-                                log::warn!("unable to serve {:?}", path);
+                                log::warn!("unable to serve {path:?}");
                                 Ok(not_found())
                             }
                         }
                         (method, path) => {
-                            log::info!("unknown incoming request {:?} for {}", method, path);
+                            log::info!("unknown incoming request {method:?} for {path}");
                             Ok(not_found())
                         }
                     }

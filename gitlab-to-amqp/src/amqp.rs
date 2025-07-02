@@ -49,7 +49,7 @@ async fn amqp_receiver(
     pin_utils::pin_mut!(data);
     send_response
         .sink_map_err(|e| {
-            log::warn!("sink error: {}", e);
+            log::warn!("sink error: {e}");
             AmqpError::from(e)
         })
         .send_all(&mut data)

@@ -20,7 +20,7 @@ pub async fn post(request: Request<String>) -> Result<StatusCode, hyper::Error> 
             r.status()
         })
         .inspect_err(|e| {
-            log::error!("could not post request: {}", e);
+            log::error!("could not post request: {e}");
         })
         .await
 }

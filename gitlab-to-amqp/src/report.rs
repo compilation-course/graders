@@ -51,7 +51,7 @@ fn signal_to_explanation(signal: u32) -> String {
 fn yaml_to_markdown(lab: &str, yaml: &str) -> eyre::Result<(String, usize, usize)> {
     let report: Report = serde_yaml::from_str(yaml)?;
     if let Some(explanation) = report.explanation {
-        log::warn!("problem during handling of {}: {}", lab, explanation);
+        log::warn!("problem during handling of {lab}: {explanation}");
         return Ok((
             format!(
                 r#"## Error
@@ -129,8 +129,8 @@ pub fn response_to_post(
     let (report, grade, max_grade) = yaml_to_markdown(&response.lab, &response.yaml_result)?;
     let (hook, zip) = gitlab::from_opaque(&response.opaque)?;
     match gitlab::remove_zip_file(config, &zip) {
-        Ok(_) => log::trace!("removed zip file {}", zip),
-        Err(e) => log::warn!("could not remove zip file {}: {}", zip, e),
+        Ok(_) => log::trace!("removed zip file {zip}"),
+        Err(e) => log::warn!("could not remove zip file {zip}: {e}"),
     }
     let state = if grade == max_grade {
         State::Success

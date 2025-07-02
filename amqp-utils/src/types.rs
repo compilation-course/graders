@@ -16,7 +16,7 @@ impl AmqpConnection {
         let dest = format!("amqp://{}:{}/%2f", config.host, config.port);
         let connection = Connection::connect(&dest, ConnectionProperties::default())
             .inspect_err(|e| {
-                log::warn!("error when connecting AMQP client to {}: {}", dest, e);
+                log::warn!("error when connecting AMQP client to {dest}: {e}");
             })
             .await?;
         Ok(AmqpConnection { inner: connection })
