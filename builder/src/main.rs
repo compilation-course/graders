@@ -52,7 +52,7 @@ async fn main() {
         .expect("non-utf8 character in top-level directory");
     if !Path::new(&opt.src).is_dir() {
         log::info!("Unzipping {:?}", opt.src);
-        match unzip(&tmp.into_path(), &opt.src, top_level_dir).await {
+        match unzip(&tmp.keep(), &opt.src, top_level_dir).await {
             Ok(d) => opt.src = d.to_str().unwrap().to_owned(), // Replace src by directory
             Err(e) => {
                 outputs::write_error(&opt, e.into());

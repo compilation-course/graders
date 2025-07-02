@@ -13,17 +13,17 @@ log = "0.4.27"
 serde = "1.0.219"
 serde_derive = "1.0.219"
 serde_yaml = "0.9.34"
-thiserror = "2.0.0"
+thiserror = "2.0.12"
 eyre = "0.6.12"
-color-eyre = "0.6.3"
+color-eyre = "0.6.5"
 
 [dependencies.clap]
 features = ["cargo"]
-version = "4.5.36"
+version = "4.5.40"
 
 [dependencies.amqp-utils]
 path = "../amqp-utils"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread", "sync"]
-version = "1.44.2"
+version = "1.46.0"

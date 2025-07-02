@@ -128,7 +128,7 @@ async fn package(
 ) -> eyre::Result<Vec<(String, String, String)>> {
     log::info!("packaging {}", hook.desc());
     let temp = tempfile::TempDir::new()?;
-    let root = temp.into_path();
+    let root = temp.keep();
     let _repo = clone(&config.gitlab.token, hook, &root).map_err(|e| {
         log::error!("error when cloning: {}", e);
         e
