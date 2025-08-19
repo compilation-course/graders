@@ -1,4 +1,4 @@
-FROM debian:bookworm as builder
+FROM debian:trixie as builder
 RUN apt-get -qq update
 RUN apt-get -y install curl build-essential libssl-dev pkg-config
 RUN curl https://sh.rustup.rs -sSf > /tmp/rustup.sh && chmod 755 /tmp/rustup.sh && /tmp/rustup.sh -y
@@ -6,7 +6,7 @@ RUN mkdir /tmp/builder
 COPY . /tmp/builder
 RUN cd /tmp/builder/builder && /root/.cargo/bin/cargo build --release
 
-FROM debian:bookworm
+FROM debian:trixie
 MAINTAINER Samuel Tardieu <sam@rfc1149.net>
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get -qq update
