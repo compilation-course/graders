@@ -39,9 +39,9 @@ dependencies = [
 
 [[package]]
 name = "amq-protocol"
-version = "8.2.2"
+version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "894fbf80278aaabad65c95075f509fa54fc1668928199ec01ab2b91ad665ce5f"
+checksum = "355603365d2217f7fbc03f0be085ea1440498957890f04276402012cdde445f5"
 dependencies = [
  "amq-protocol-tcp",
  "amq-protocol-types",
@@ -53,21 +53,24 @@ dependencies = [
 
 [[package]]
 name = "amq-protocol-tcp"
-version = "8.2.2"
+version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc1bfe0f0bce15b577780731d0cb6cb6fff455e7bd185d26dc7bad473de647bd"
+checksum = "8d7b97a85e08671697e724a6b7f1459ff81603613695e3151764a9529c6fec15"
 dependencies = [
  "amq-protocol-uri",
+ "async-trait",
  "cfg-if",
+ "executor-trait 2.1.2",
+ "reactor-trait 2.8.0",
  "tcp-stream",
  "tracing",
 ]
 
 [[package]]
 name = "amq-protocol-types"
-version = "8.2.2"
+version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "050a8470138484a926549a650cf17be712476fda914ea6830ed82f0e9bb2c084"
+checksum = "a2984a816dba991b5922503921d8f94650792bdeac47c27c83830710d2567f63"
 dependencies = [
  "cookie-factory",
  "nom 8.0.0",
@@ -77,9 +80,9 @@ dependencies = [
 
 [[package]]
 name = "amq-protocol-uri"
-version = "8.2.2"
+version = "8.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01ed44087b37c33c35b5fec24f4463624077a22fca12f957797616ca68edfe7d"
+checksum = "f31db8e69d1456ec8ecf6ee598707179cf1d95f34f7d30037b16ad43f0cddcff"
 dependencies = [
  "amq-protocol-types",
  "percent-encoding",
@@ -262,7 +265,20 @@ checksum = "9af57045d58eeb1f7060e7025a1631cbc6399e0a1d10ad6735b3d0ea7f8346ce"
 dependencies = [
  "async-global-executor",
  "async-trait",
- "executor-trait",
+ "executor-trait 2.1.2",
+]
+
+[[package]]
+name = "async-global-executor-trait"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3727b7da74b92d2d03403cf1142706b53423e5c050791af438f8f50edea057a"
+dependencies = [
+ "async-global-executor",
+ "async-global-executor-trait 2.2.0",
+ "async-trait",
+ "executor-trait 2.1.2",
+ "executor-trait 3.1.0",
 ]
 
 [[package]]
@@ -297,14 +313,14 @@ dependencies = [
 
 [[package]]
 name = "async-reactor-trait"
-version = "2.0.0"
+version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35ce4c5a0627f1b37c346233c34ef2263e6a58812f7c071b71d3712511421422"
+checksum = "8ab52004af1f14a170088bd9e10a2d3b2f2307ce04320e58a6ce36ee531be625"
 dependencies = [
  "async-io",
  "async-trait",
  "futures-core",
- "reactor-trait",
+ "reactor-trait 3.1.1",
 ]
 
 [[package]]
@@ -360,6 +376,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "backon"
+version = "1.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "592277618714fbcecda9a02ba7a8781f319d26532a88553bbacc77ba5d2b3a8d"
+dependencies = [
+ "fastrand",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -379,6 +404,12 @@ name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
+
+[[package]]
+name = "base64"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base64ct"
@@ -896,7 +927,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "778e2ac28f6c47af28e4907f13ffd1e1ddbd400980a9abd7c8df189bf578a5ad"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -925,6 +956,15 @@ name = "executor-trait"
 version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c39dff9342e4e0e16ce96be751eb21a94e94a87bb2f6e63ad1961c2ce109bf"
+dependencies = [
+ "async-trait",
+]
+
+[[package]]
+name = "executor-trait"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d6a1fc6700fa12782770cb344a29172ae940ea41d5fd5049fdf236dd6eaa92"
 dependencies = [
  "async-trait",
 ]
@@ -1079,6 +1119,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "futures-rustls"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f2f12607f92c69b12ed746fabf9ca4f5c482cba46679c1a75b874ed7c26adb"
+dependencies = [
+ "futures-io",
+ "rustls",
+ "rustls-pki-types",
 ]
 
 [[package]]
@@ -1573,21 +1624,21 @@ dependencies = [
 
 [[package]]
 name = "lapin"
-version = "3.2.0"
+version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec260cca49fd7943bcbd211a8facd0b1aa6183f422126f11e98b65c5cf5cb3cb"
+checksum = "531b882dc9a4975745d68195cd01e66a66981003c5560958a896018ce489f1a5"
 dependencies = [
  "amq-protocol",
- "async-global-executor-trait",
+ "async-global-executor-trait 3.1.0",
  "async-reactor-trait",
  "async-trait",
- "executor-trait",
+ "backon",
+ "executor-trait 2.1.2",
  "flume",
  "futures-core",
  "futures-io",
- "reactor-trait",
+ "reactor-trait 2.8.0",
  "tracing",
- "waker-fn",
 ]
 
 [[package]]
@@ -1629,7 +1680,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -1911,10 +1962,11 @@ checksum = "48dd4f4a2c8405440fd0462561f0e5806bd0f77e86f51c761481bdd4018b545e"
 
 [[package]]
 name = "p12-keystore"
-version = "0.1.5"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cae83056e7cb770211494a0ecf66d9fa7eba7d00977e5bb91f0e925b40b937f"
+checksum = "e8d55319bae67f92141ce4da80c5392acd3d1323bd8312c1ffdfb018927d07d7"
 dependencies = [
+ "base64 0.22.1",
  "cbc",
  "cms",
  "der",
@@ -2150,12 +2202,24 @@ dependencies = [
 
 [[package]]
 name = "reactor-trait"
-version = "2.0.0"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b2eb4ff39ed91c79034b2856a73b07bc8afd752c981bc4433bcbeff531e275a"
+checksum = "0ffbbf16bc3e4db5fdcf4b77cebf1313610b54b339712aa90088d2d9b1acb1f1"
+dependencies = [
+ "async-trait",
+ "reactor-trait 3.1.1",
+]
+
+[[package]]
+name = "reactor-trait"
+version = "3.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b1c85237926dd82e8bc3634240ecf2236ea81e904b3d83cdb1df974af9af293"
 dependencies = [
  "async-io",
  "async-trait",
+ "executor-trait 2.1.2",
+ "flume",
  "futures-core",
  "futures-io",
 ]
@@ -2195,7 +2259,7 @@ version = "0.11.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd67538700a17451e7cba03ac727fb961abb7607553461627b97de0b89cf4a62"
 dependencies = [
- "base64",
+ "base64 0.21.7",
  "bytes",
  "encoding_rs",
  "futures-core",
@@ -2276,7 +2340,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2289,7 +2353,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2308,10 +2372,12 @@ dependencies = [
 
 [[package]]
 name = "rustls-connector"
-version = "0.21.7"
+version = "0.21.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b68f41384a0c195494f07c9bf5d020dcfca869d3b1492c9391bbc267bd9904fd"
+checksum = "10eb7ce243317e6b6a342ef6bff8c2e0d46d78120a9aeb2ee39693a569615c96"
 dependencies = [
+ "futures-io",
+ "futures-rustls",
  "log",
  "rustls",
  "rustls-native-certs",
@@ -2337,7 +2403,7 @@ version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c74cae0a4cf6ccbbf5f359f08efdf8ee7e1dc532573bf0db71968cb56b1448c"
 dependencies = [
- "base64",
+ "base64 0.21.7",
 ]
 
 [[package]]
@@ -2670,12 +2736,14 @@ dependencies = [
 
 [[package]]
 name = "tcp-stream"
-version = "0.30.3"
+version = "0.30.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8850f932575f521b725ff61532a8a69b0230658aa50d02a70c7dd7645da85a3"
+checksum = "282ebecea8280bce8b7a0695b5dc93a19839dd445cbba70d3e07c9f6e12c4653"
 dependencies = [
  "cfg-if",
+ "futures-io",
  "p12-keystore",
+ "reactor-trait 2.8.0",
  "rustls-connector",
  "rustls-pemfile 2.2.0",
 ]
@@ -2690,7 +2758,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2944,12 +3012,6 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
-
-[[package]]
-name = "waker-fn"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "317211a0dc0ceedd78fb2ca9a44aed3d7b9b26f81870d485c07122b4350673b7"
 
 [[package]]
 name = "want"
