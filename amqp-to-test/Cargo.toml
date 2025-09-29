@@ -9,21 +9,21 @@ rust-version = "1.86.0"
 [dependencies]
 env_logger = "0.11.8"
 futures = "0.3.31"
-log = "0.4.27"
-serde = "1.0.219"
-serde_derive = "1.0.219"
+log = "0.4.28"
+serde = "1.0.228"
+serde_derive = "1.0.228"
 serde_yaml = "0.9.34"
-thiserror = "2.0.12"
+thiserror = "2.0.17"
 eyre = "0.6.12"
 color-eyre = "0.6.5"
 
 [dependencies.clap]
 features = ["cargo"]
-version = "4.5.40"
+version = "4.5.48"
 
 [dependencies.amqp-utils]
 path = "../amqp-utils"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread", "sync"]
-version = "1.46.0"
+version = "1.47.1"
