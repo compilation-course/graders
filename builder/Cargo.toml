@@ -8,19 +8,19 @@ rust-version = "1.86.0"
 
 [dependencies]
 env_logger = "0.11.8"
-log = "0.4.27"
-serde = "1.0.219"
-serde_derive = "1.0.219"
+log = "0.4.28"
+serde = "1.0.228"
+serde_derive = "1.0.228"
 serde_yaml = "0.9.34"
-is_executable = "1.0.4"
-thiserror = "2.0.12"
+is_executable = "1.0.5"
+thiserror = "2.0.17"
 eyre = "0.6.12"
-tempfile = "3.20.0"
-clap = { version = "4.5.40", features = ["derive"] }
+tempfile = "3.23.0"
+clap = { version = "4.5.48", features = ["derive"] }
 
 [dependencies.graders-utils]
 path = "../graders-utils"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]
-version = "1.46.0"
+version = "1.47.1"
