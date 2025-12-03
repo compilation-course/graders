@@ -9,7 +9,7 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: |
           [ $(cat */Cargo.toml | grep rust-version | sort -u | wc -l) -eq 1 ]
       - run: |
@@ -22,7 +22,7 @@ jobs:
     name: cargo deny
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: embarkStudios/cargo-deny-action@v2
 
   test:
@@ -33,7 +33,7 @@ jobs:
       matrix:
         toolchain: [stable, beta, nightly, msrv]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         name: Checkout
       - name: Install Rust toolchain
         run: |
@@ -52,7 +52,7 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: rustup install --profile default stable
       - run: cargo +stable fmt --all -- --check
 
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check, rustfmt, cargo-deny]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: |
           rustup install --profile default nightly
           rustup default nightly
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check, rustfmt, cargo-deny]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: docker/build-push-action@v6.18.0
         with:
           file: ./builder.dockerfile
