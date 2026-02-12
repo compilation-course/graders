@@ -74,6 +74,6 @@ jobs:
     needs: [check, rustfmt, cargo-deny]
     steps:
       - uses: actions/checkout@v6
-      - uses: docker/build-push-action@v6.18.0
+      - uses: docker/build-push-action@v6.19.2
         with:
           file: ./builder.dockerfile
